@@ -50,6 +50,21 @@ LANG_CODES = {
     "spanish": "es",
     "portuguese": "pt",
     "javanese": "jv",
+    "japanese": "jp",
+    "jepang": "jp",
+    "korean": "kr",
+    "korea": "kr",
+    "chinese": "cn",
+    "chinese (simplified)": "cn",
+    "chinese (traditional)": "tw",
+    "mandarin": "cn",
+    "thai": "th",
+    "vietnamese": "vi",
+    "russian": "ru",
+    "arabic": "ar",
+    "hindi": "hi",
+    "malay": "ms",
+    "tagalog": "tl"
 }
 
 # Supported image file extensions

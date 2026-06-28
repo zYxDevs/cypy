@@ -79,79 +79,100 @@ def _has_non_latin(text):
     return False
 
 
-import re
+_DIRECT_FONT_MAP = {
+    "korean": ("https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/Korean/NotoSansCJKkr-Regular.otf", ".otf"),
+    "chinese (simplified)": ("https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf", ".otf"),
+    "chinese": ("https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf", ".otf"),
+    "chinese (traditional)": ("https://github.com/notofonts/noto-cjk/raw/main/Sans/OTF/TraditionalChinese/NotoSansCJKtc-Regular.otf", ".otf"),
+    "thai": ("https://github.com/google/fonts/raw/main/ofl/notosansthai/NotoSansThai%5Bwdth%2Cwght%5D.ttf", ".ttf"),
+    "arabic": ("https://github.com/google/fonts/raw/main/ofl/notosansarabic/NotoSansArabic%5Bwdth%2Cwght%5D.ttf", ".ttf"),
+    "russian": ("https://github.com/google/fonts/raw/main/ofl/notosans/NotoSans%5Bwdth%2Cwght%5D.ttf", ".ttf"),
+    "vietnamese": ("https://github.com/google/fonts/raw/main/ofl/notosans/NotoSans%5Bwdth%2Cwght%5D.ttf", ".ttf"),
+    "bengali": ("https://github.com/google/fonts/raw/main/ofl/notosansbengali/NotoSansBengali%5Bwdth%2Cwght%5D.ttf", ".ttf"),
+    "hindi": ("https://github.com/google/fonts/raw/main/ofl/notosansdevanagari/NotoSansDevanagari%5Bwdth%2Cwght%5D.ttf", ".ttf")
+}
 
 def _download_noto_font(language):
     """
-    Download the appropriate Noto Sans font from Google Fonts for a given language.
-    Uses the Google Fonts CSS API to get the direct TTF download URL.
-    Returns the path to the downloaded .ttf file, or None on failure~ ♪
+    Download the appropriate font for a given language.
+    Uses direct GitHub links for full CJK fonts, and Google Fonts API for others.
     """
     if _requests is None:
         print("  [!] 'requests' package not available, cannot download font.")
         return None
 
     os.makedirs(FONT_CACHE_DIR, exist_ok=True)
-
     lang_key = language.lower()
 
-    # Check if we have a mapping for this language
+    # Special handling for CJK to get full OTF fonts (16MB+)
+    if lang_key in _DIRECT_FONT_MAP:
+        url, ext = _DIRECT_FONT_MAP[lang_key]
+        safe_name = f"NotoSans_{lang_key.replace(' ', '')}"
+        cached_file = os.path.join(FONT_CACHE_DIR, f"{safe_name}{ext}")
+        
+        if os.path.exists(cached_file):
+            return cached_file
+            
+        print(f"  [Font] Downloading full font for {language} (this may take a moment)...")
+        try:
+            resp = _requests.get(url, stream=True, timeout=60)
+            if resp.status_code == 200:
+                total_size = int(resp.headers.get('content-length', 0))
+                downloaded = 0
+                
+                with open(cached_file, "wb") as f:
+                    for chunk in resp.iter_content(chunk_size=8192):
+                        f.write(chunk)
+                        downloaded += len(chunk)
+                        if total_size > 0:
+                            percent = int(100 * downloaded / total_size)
+                            # Print progress on the same line
+                            print(f"\r  [Font] Downloading... {percent}% ({downloaded//1024}KB / {total_size//1024}KB)", end="")
+                print(f"\n  [Font] Downloaded successfully: {os.path.basename(cached_file)}")
+                return cached_file
+        except Exception as e:
+            print(f"\n  [!] Font download error: {e}")
+            return None
+
+    # Fallback to Google Fonts CSS API for other languages
+    import re
     font_family = _NOTO_SANS_MAP.get(lang_key)
     if not font_family:
-        # Try partial match
         for key, family in _NOTO_SANS_MAP.items():
             if key in lang_key or lang_key in key:
                 font_family = family
                 break
 
     if not font_family:
-        # Default to base Noto Sans (good Unicode coverage)
         font_family = "Noto+Sans"
 
-    # Create a safe filename from the font family
     safe_name = font_family.replace("+", "").replace(" ", "")
     cached_ttf = os.path.join(FONT_CACHE_DIR, f"{safe_name}.ttf")
 
-    # Return cached version if exists
     if os.path.exists(cached_ttf):
         return cached_ttf
 
     print(f"  [Font] Fetching {font_family.replace('+', ' ')} from Google Fonts...")
-    
-    # Request CSS with an old User-Agent so Google returns TTF instead of WOFF2
     css_url = f"https://fonts.googleapis.com/css?family={font_family}"
     headers = {'User-Agent': 'Mozilla/4.0 (compatible; MSIE 6.0; Windows NT 5.1; SV1)'}
     
     try:
         css_resp = _requests.get(css_url, headers=headers, timeout=15)
-        if css_resp.status_code != 200:
-            print(f"  [!] Failed to get font CSS (HTTP {css_resp.status_code})")
-            return None
-            
-        # Extract the TTF URL using regex
-        match = re.search(r"url\((https://[^)]+)\)", css_resp.text)
-        if not match:
-            print("  [!] Could not find font download URL in CSS.")
-            return None
-            
-        ttf_url = match.group(1).strip("'\"")
-        
-        # Download the TTF file
-        ttf_resp = _requests.get(ttf_url, stream=True, timeout=30)
-        if ttf_resp.status_code != 200:
-            print(f"  [!] Font TTF download failed (HTTP {ttf_resp.status_code})")
-            return None
-            
-        with open(cached_ttf, "wb") as f:
-            for chunk in ttf_resp.iter_content(chunk_size=8192):
-                f.write(chunk)
-                
-        print(f"  [Font] Downloaded successfully: {os.path.basename(cached_ttf)}")
-        return cached_ttf
-
+        if css_resp.status_code == 200:
+            match = re.search(r"url\((https://[^)]+)\)", css_resp.text)
+            if match:
+                ttf_url = match.group(1).strip("'\"")
+                ttf_resp = _requests.get(ttf_url, stream=True, timeout=30)
+                if ttf_resp.status_code == 200:
+                    with open(cached_ttf, "wb") as f:
+                        for chunk in ttf_resp.iter_content(chunk_size=8192):
+                            f.write(chunk)
+                    print(f"  [Font] Downloaded successfully: {os.path.basename(cached_ttf)}")
+                    return cached_ttf
     except Exception as e:
         print(f"  [!] Font download error: {e}")
-        return None
+        
+    return None
 
 
 def _get_font_for_text(text, size, language=None):
@@ -161,6 +182,8 @@ def _get_font_for_text(text, size, language=None):
     """
     if _has_non_latin(text):
         lang = language.lower() if language else ""
+        if lang == "jepang":
+            lang = "japanese"
 
         # Japanese uses bundled KosugiMaru.ttf
         if lang == "japanese" and os.path.exists(FONT_JAPANESE):
@@ -261,8 +284,16 @@ def bungkus_teks_per_kata(draw, text, font, max_w):
     """
     Wraps text based on word widths. 
     Hyphenated words may be split at hyphens to allow larger font sizes~ ♪
+    Supports languages without spaces (like Chinese) by splitting by character.
     """
-    raw_words = str(text).split()
+    text = str(text)
+    
+    # If text has no spaces and contains non-latin chars (like Chinese), 
+    # treat each character as a word for wrapping purposes.
+    if " " not in text and _has_non_latin(text):
+        raw_words = list(text)
+    else:
+        raw_words = text.split()
 
     if not raw_words:
         return ""
@@ -275,7 +306,12 @@ def bungkus_teks_per_kata(draw, text, font, max_w):
     current = ""
 
     for word in words:
-        candidate = word if current == "" else current + " " + word
+        # If splitting by character, don't add spaces between "words"
+        if " " not in text and _has_non_latin(text):
+            candidate = word if current == "" else current + word
+        else:
+            candidate = word if current == "" else current + " " + word
+            
         bbox = draw.textbbox((0, 0), candidate, font=font)
         candidate_w = bbox[2] - bbox[0]
 
@@ -351,6 +387,102 @@ def pilih_setting_teks(box_width, box_height, text):
     }
 
 
+def tulis_teks_jepang_vertikal(draw, text, font_func, x1, y1, x2, y2, setting, background_patch=False):
+    """
+    Draws Japanese text vertically (Top-to-Bottom, Right-to-Left).
+    """
+    text = text.replace(" ", "").replace("\n", "")
+    box_width = max(1, x2 - x1)
+    box_height = max(1, y2 - y1)
+    
+    max_w = box_width * setting["skala_w"]
+    max_h = box_height * setting["skala_h"]
+    
+    min_font_size = setting["min_font"]
+    max_font_size = setting["max_font"]
+    
+    best_font_size = min_font_size
+    best_columns = []
+    
+    for f_size in range(max_font_size, min_font_size - 1, -1):
+        char_h = f_size
+        char_w = f_size
+        chars_per_col = max(1, int(max_h // char_h))
+        
+        columns = [text[i:i+chars_per_col] for i in range(0, len(text), chars_per_col)]
+        total_w = len(columns) * char_w
+        
+        if total_w <= max_w:
+            best_font_size = f_size
+            best_columns = columns
+            break
+
+    # If it still doesn't fit, just use the minimum font size
+    if not best_columns:
+        chars_per_col = max(1, int(max_h // min_font_size))
+        best_columns = [text[i:i+chars_per_col] for i in range(0, len(text), chars_per_col)]
+            
+    best_font_size = max(min_font_size, int(best_font_size * setting["font_scale"]))
+    font = font_func(text, best_font_size, "japanese")
+    
+    actual_w = len(best_columns) * best_font_size
+    actual_h = max(len(col) for col in best_columns) * best_font_size if best_columns else 0
+    
+    # Start at right-most column
+    start_x = x1 + (box_width + actual_w) / 2 - best_font_size
+    start_y = y1 + (box_height - actual_h) / 2
+    
+    stroke_w = max(1, best_font_size // 11)
+    
+    if background_patch:
+        pad = max(6, best_font_size // 2)
+        patch_box = [
+            int(start_x - actual_w + best_font_size - pad),
+            int(start_y - pad),
+            int(start_x + best_font_size + pad),
+            int(start_y + actual_h + pad)
+        ]
+        draw.rectangle(patch_box, fill=(255, 255, 255, 255))
+        
+    for col in best_columns:
+        curr_y = start_y
+        for char in col:
+            # Basic vertical punctuation handling
+            offset_x, offset_y = 0, 0
+            if char in ['。', '、', '.']:
+                offset_x, offset_y = best_font_size * 0.6, -best_font_size * 0.6
+            elif char in ['「', '」', '（', '）', '(', ')']:
+                # Simplistic rotation/shift for brackets - in a real app you'd rotate the glyph
+                pass 
+                
+            char_x = start_x + offset_x
+            char_y = curr_y + offset_y
+            
+            # Text stroke
+            draw.text(
+                (char_x, char_y),
+                char,
+                font=font,
+                fill=(255, 255, 255, 255),
+                stroke_width=stroke_w,
+                stroke_fill=(255, 255, 255, 255)
+            )
+            # Text body
+            draw.text(
+                (char_x, char_y),
+                char,
+                font=font,
+                fill=(0, 0, 0, 255)
+            )
+            
+            # "ー" (chouonpu) needs to be drawn vertically (rotated)
+            # PIL text drawing doesn't easily rotate single characters inline without creating a new image
+            # A simple hack for vertical chouonpu is drawing a line or a pipe '|' if not supported natively.
+            
+            curr_y += best_font_size
+        start_x -= best_font_size
+
+
 def tulis_teks_di_balon(draw, text, x1, y1, x2, y2, background_patch=False, target_language=None):
     """
     Auto-fits translated text into speech bubbles.
@@ -359,14 +491,22 @@ def tulis_teks_di_balon(draw, text, x1, y1, x2, y2, background_patch=False, targ
     """
     text = str(text).strip()
 
+    box_width = max(1, x2 - x1)
+    box_height = max(1, y2 - y1)
+    setting = pilih_setting_teks(box_width, box_height, text)
+    
+    lang_key = target_language.lower() if target_language else ""
+    if lang_key == "jepang":
+        lang_key = "japanese"
+
+    # Japanese vertical routing
+    if lang_key == "japanese":
+        tulis_teks_jepang_vertikal(draw, text, _get_font_for_text, x1, y1, x2, y2, setting, background_patch)
+        return
+
     # Only uppercase for Latin scripts (Korean/CJK/Arabic don't have uppercase)
     if not _has_non_latin(text):
         text = text.upper()
-
-    box_width = max(1, x2 - x1)
-    box_height = max(1, y2 - y1)
-
-    setting = pilih_setting_teks(box_width, box_height, text)
 
     max_w = box_width * setting["skala_w"]
     max_h = box_height * setting["skala_h"]

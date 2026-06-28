@@ -141,7 +141,7 @@ def proses_satu_gambar(image_path, yolo_model, provider, target_language="Indone
     """Processes a single manga page~ ♪"""
     print(f"\nTranslating: {os.path.basename(image_path)}")
 
-    lang_code = LANG_CODES.get(target_language.lower(), "tr")
+    lang_code = LANG_CODES.get(target_language.lower(), target_language[:2].lower() if target_language else "tr")
     suffix = f"_cypytr_{lang_code}"
 
     img = cv2.imread(image_path)
