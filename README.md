@@ -100,7 +100,12 @@ cypy/
 ├── assets/              # YOLO model weights, font, and icons
 ├── cypy/                # Main Python package
 │   ├── app.py           # Entrypoint loop & CLI logic
-│   └── core/            # Engine modules (translator, configs, utilities)
+│   ├── __main__.py      # Module entrypoint for `python -m cypy`
+│   └── core/            # Engine modules
+│       ├── config.py
+│       ├── translator.py
+│       ├── utils.py
+│       └── providers/   # LLM integrations (Gemini, OpenRouter, OpenAI)
 ├── pyproject.toml       # Python package configuration
 └── README.md
 ```
