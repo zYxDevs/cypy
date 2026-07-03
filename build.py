@@ -135,6 +135,7 @@ def run_build():
         "--assume-yes-for-downloads",
         "--show-progress",
         "--jobs=1",
+        "--low-memory",
     ]
 
     curr_system = platform.system().lower()
@@ -146,6 +147,7 @@ def run_build():
         )
 
     if curr_system == "windows":
+        cmd.append("--mingw64")  # GCC handles large C files better than MSVC
         cmd.extend([
             f"--windows-icon-from-ico={ICON_PATH}" if is_favicon_exist else ''
         ])
