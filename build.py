@@ -44,6 +44,18 @@ def run_build():
         "--exclude-module=sqlite3",
         "--exclude-module=IPython",
         "--exclude-module=notebook",
+        "--exclude-module=pandas",
+        "--exclude-module=tensorboard",
+        "--exclude-module=torch.testing",
+        "--exclude-module=torch.distributed",
+        "--exclude-module=triton",
+        "--exclude-module=sympy",
+        "--exclude-module=mpmath",
+        "--exclude-module=jinja2",
+        "--exclude-module=PyQt5",
+        "--exclude-module=PyQt6",
+        "--exclude-module=PySide2",
+        "--exclude-module=PySide6",
     ]
     
     # Add icon if available
