@@ -61,6 +61,11 @@ def print_box(title, options, col_width=28):
     num_items = len(options)
     half = (num_items + 1) // 2
     
+    # Dynamically find the maximum option visual length to prevent truncation/overflow
+    max_opt_len = max(visual_len(opt) for opt in options) if options else 0
+    # Add safety margin (e.g. 2 spaces) to the column width, ensuring it is at least col_width
+    col_width = max(col_width, max_opt_len + 2)
+    
     # Calculate box width
     box_width = (col_width * 2) + 1
     
@@ -104,8 +109,11 @@ def tampilkan_help():
         ("stop / exit", "Exit cypy CLI")
     ]
     
-    col1_w = 17
-    col2_w = 38
+    max_cmd_len = max(visual_len(cmd) for cmd, _ in lines)
+    max_desc_len = max(visual_len(desc) for _, desc in lines)
+    
+    col1_w = max_cmd_len + 4 # 2 leading spaces + 2 padding
+    col2_w = max_desc_len + 2 # 1 leading space + 1 padding
     box_w = col1_w + 1 + col2_w
     
     print(f"\n{Colors.CYAN}{Colors.BOLD}┌{'─' * box_w}┐")
