@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cypy"
-version = "0.2504"
+dynamic = ["version"]
 description = "CYPY: Cyrene's Python Manga Translator - Auto translate manga panels using YOLO and Gemini"
 readme = "README.md"
 requires-python = ">=3.8"
@@ -13,7 +13,7 @@ dependencies = [
     "PyMuPDF",
     "numpy",
     "Pillow",
-    "ultralytics",
+    "onnxruntime",
     "google-genai",
     "python-dotenv",
     "requests",
@@ -25,3 +25,6 @@ cypy = "cypy.app:main"
 
 [tool.setuptools.packages.find]
 include = ["cypy*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "cypy.core.version.APP_VER"}

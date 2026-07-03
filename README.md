@@ -19,11 +19,13 @@
 ## Features
 
 - **Multi-Language Support:** Translate to English, Indonesian, Japanese (with native vertical *Tategaki* text!), Mandarin (简体中文), Spanish, Portuguese, Javanese, and **Custom Languages** (supports Thai, Arabic, Cyrillic, etc. with automatic full variable font downloading!).
-- **Multi-Provider AI:** Choose between **Google Gemini**, **OpenAI** (GPT-5,4), **Zen** (free, no key needed), **OpenRouter** (100+ models), or **Custom** (any OpenAI-compatible API) directly from the CLI.
+- **Multi-Provider AI:** Choose between **Google Gemini**, **OpenAI** (GPT-5.4), **Zen** (free, no key needed), **OpenRouter** (100+ models), or **Custom** (any OpenAI-compatible API) directly from the CLI.
 - **Interactive Commands:** Change the target language (`lang`), switch API providers (`provider`), change models (`model`), or check current settings (`status`) on the fly inside the loop.
 - **Zero-Setup Startup:** Prompts for the API key in the CLI and generates the `.env` file automatically if missing. Zen works out of the box — no API key required.
 - **Custom API Support:** Bring your own OpenAI-compatible endpoint with configurable base URL, API key, and model.
 - **Auto Desktop Shortcut:** Creates a rounded Windows desktop shortcut automatically on the first run.
+- **Persistent Settings:** Your preferences (active language, provider, models, and keys) are automatically saved to `data/settings.json` whenever they change, preserving your configuration across runs.
+- **Dynamic Box Layouts:** Terminal tables, guides, and status cards calculate width dynamically using East Asian Width rules, ensuring perfect column alignment even with CJK characters or long names.
 
 ---
 
@@ -69,6 +71,13 @@ Download the pre-compiled package for your OS from the [Releases](https://github
    python -m cypy
    ```
 
+### Option 3: Building Standalone Executable (Using Nuitka)
+If you want to compile `cypy` into a standalone, optimized C++ directory package yourself, run the build script:
+```bash
+python build.py
+```
+This requires **Nuitka** (which will be installed automatically if missing) and will output the ready-to-run `.zip` package inside the `releases/` directory.
+
 ---
 
 ## Configuration
@@ -98,7 +107,7 @@ CUSTOM_API_KEY=your_api_key_here
 MODEL_CUSTOM=gpt-5.4-mini
 ```
 
-> [!NOTE]
+> [NOTE]
 > Advanced layout settings (margins, font scales, etc.) can be adjusted in [cypy/core/config.py](cypy/core/config.py).
 
 ---

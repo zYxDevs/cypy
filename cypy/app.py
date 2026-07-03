@@ -1,13 +1,22 @@
 import os
+import sys
 import time
-from ultralytics import YOLO
+
+if sys.platform.startswith('win'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+        sys.stderr.reconfigure(encoding='utf-8')
+    except AttributeError:
+        pass
+
+from cypy.core.yolo_onnx import YOLOONNX as YOLO
 from cypy.core.config import get_provider_config
 import cypy.core.config as config
 from cypy.core.translator import proses_satu_gambar, mulai_ritual_pdf, proses_folder, mulai_ritual_archive
 from cypy.core.providers import create_provider
 from cypy.core.utils import create_shortcut_if_first_run
 from cypy.core import ui
-from cypy import __version__
+from cypy.core.version import APP_VER
 
 
 # ==========================================
@@ -372,7 +381,7 @@ def main():
     if config.load_local_profile():
         print("\n[+] Loaded local profile (cypy_profile.json)")
 
-    ui.print_logo(__version__)
+    ui.print_logo(APP_VER.lstrip('v'))
 
     # Load LLM provider from settings.json or env
     if config.LLM_PROVIDER:

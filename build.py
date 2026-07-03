@@ -2,206 +2,286 @@ import os
 import sys
 import shutil
 import platform
-import zipfile
 import subprocess
+from pathlib import Path
+from typing import Iterable, List, Union
 
-def install_dependencies():
-    # Ensure pyinstaller is installed
+ROOT_DIR = Path(__file__).absolute().parent
+sys.path.insert(0, str(ROOT_DIR))
+
+from cypy.core.version import APP_NAME, APP_VER
+FAVICON_PATH = "assets/favicon.ico"
+
+# Base directories
+ASSETS_DIR = ROOT_DIR / "assets"
+DIST_DIR = ROOT_DIR / "dist"
+RELEASES_DIR = ROOT_DIR / "releases"
+ICON_PATH = ROOT_DIR / FAVICON_PATH \
+    if FAVICON_PATH                 \
+    else ASSETS_DIR / "favicon.ico"
+
+APP_ENTRY_POINT = ROOT_DIR / APP_NAME / "app.py"
+
+EXEC_PATH = sys.executable
+REQUIRED_DEPS = {
+    "nuitka",
+    "ordered-set"
+}
+
+EXTRA_FILES = {
+    ROOT_DIR / "README.md",
+    ROOT_DIR / "LICENSE",
+    ROOT_DIR / ".env.example"
+}
+
+def normalize_arch(machine: str) -> str:
+    machine = machine.lower()
+    if machine in ["amd64", "x86_64"]:
+        return "x64"
+    elif machine in ["i386", "i686", "x86"]:
+        return "x86"
+    elif machine.startswith(("arm", "aarch")):
+        return "arm64"
+    return machine
+
+def check_dependencies(deps: Iterable[str]) -> List[str]:
+    deps = set(deps)
+    if not deps: return []
+
+    cmd = [EXEC_PATH, "-m", "pip", "freeze"]
+    available_deps = set()
+
     try:
-        import PyInstaller
-        print(f"[Build] PyInstaller version: {PyInstaller.__version__}")
+        with subprocess.Popen(
+            cmd,
+            bufsize=1,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.DEVNULL,
+            text=True,
+            encoding="utf-8",
+        ) as proc:
+            assert proc.stdout is not None
+
+            for line in proc.stdout:
+                package = line.partition("==")[0].strip()
+                if package in deps:
+                    print(f"[Build] Dependency installed: {package}")
+                    available_deps.add(package)
+
+            returncode = proc.wait()
+
+        if returncode != 0:
+            print(
+                f"[Build] Warning: pip freeze exited with code {returncode}",
+                file=sys.stderr,
+            )
+            return []
+
+    except (OSError, FileNotFoundError) as exc:
+        print(
+            f"[Build] Warning: Failed to check Python dependencies: {exc}",
+            file=sys.stderr,
+        )
+        return []
+
+    return list(available_deps)
+
+def install_dependencies(deps: Iterable[str]):
+    deps = set(deps)
+    try:
+        from nuitka.Version import getNuitkaVersion
+        print(f"[Build] Nuitka version: {getNuitkaVersion()}")
     except ImportError:
-        print("[Build] PyInstaller not found. Installing via pip...")
+        print("[Build] Nuitka not found. Installing via pip...", file=sys.stderr)
         try:
-            subprocess.check_call([sys.executable, "-m", "pip", "install", "pyinstaller"])
-        except Exception as e:
-            print(f"[Build] Failed to install PyInstaller: {e}")
-            sys.exit(1)
+            subprocess.check_call([EXEC_PATH, "-m", "pip", "install", *deps])
+        except subprocess.CalledProcessError as e:
+            print(f"[Build] Failed to install {', '.join(deps)}: {e}", file=sys.stderr)
+            sys.exit(e.returncode)
 
 def run_build():
-    # Install dependencies first
-    install_dependencies()
+    available_deps = check_dependencies(REQUIRED_DEPS)
+    missing_deps = REQUIRED_DEPS - set(available_deps)
+    if missing_deps:
+        missing_deps_sorted = sorted(missing_deps)
+        print(f"[Build] Missing dependencies: {', '.join(missing_deps_sorted)}")
+        install_dependencies(missing_deps_sorted)
 
-    # Path separator: ';' on Windows, ':' on Unix-like (Linux/macOS)
-    sep = ";" if platform.system() == "Windows" else ":"
-    
-    # Base directories
-    project_root = os.path.dirname(os.path.abspath(__file__))
-    assets_dir = os.path.join(project_root, "assets")
-    
-    # Build command for console application (no --windowed/--noconsole because cypy is a CLI app)
-    # Using --onedir as requested for lightweight, SSD-friendly, instant startup.
-    cmd = [
-        "pyinstaller",
-        "--clean",
-        "--noconfirm",
-        "--name=cypy",
-        "--onedir",
-        f"--add-data={assets_dir}{sep}assets",
-        "--exclude-module=polars",
-        "--exclude-module=lxml",
-        "--exclude-module=tkinter",
-        "--exclude-module=sqlite3",
-        "--exclude-module=IPython",
-        "--exclude-module=notebook",
-        "--exclude-module=pandas",
-        "--exclude-module=tensorboard",
-        "--exclude-module=torch.testing",
-        "--exclude-module=torch.distributed",
-        "--exclude-module=triton",
-        "--exclude-module=sympy",
-        "--exclude-module=mpmath",
-        "--exclude-module=jinja2",
-        "--exclude-module=PyQt5",
-        "--exclude-module=PyQt6",
-        "--exclude-module=PySide2",
-        "--exclude-module=PySide6",
+    # Clean up old build outputs to avoid Windows locked file issues
+    if DIST_DIR.exists():
+        print(f"[Build] Cleaning up old build directory: {DIST_DIR}")
+        try:
+            shutil.rmtree(DIST_DIR)
+        except Exception as e:
+            print(f"[Build] Warning: Failed to fully delete {DIST_DIR}, error: {e}. Trying to ignore errors...")
+            shutil.rmtree(DIST_DIR, ignore_errors=True)
+
+    # Build command using Nuitka (cypy is CLI so console mode is enable)
+    cmd: List[str] = [
+        EXEC_PATH, "-m", "nuitka",
+        "--standalone",
+        f"--output-dir={DIST_DIR}",
+        f"--output-filename={APP_NAME}",
+        f"--include-data-dir={ASSETS_DIR}=assets",
+        "--nofollow-import-to=pandas",
+        "--nofollow-import-to=tensorboard",
+        "--nofollow-import-to=tkinter",
+        "--nofollow-import-to=IPython",
+        "--nofollow-import-to=torch",
+        "--nofollow-import-to=ultralytics",
+        "--assume-yes-for-downloads",
+        "--show-progress",
     ]
-    
-    # Add icon if available
-    icon_path = os.path.join(assets_dir, "favicon.ico")
-    if os.path.exists(icon_path):
-        cmd.append(f"--icon={icon_path}")
-    else:
-        print("[Build] Warning: favicon.ico not found, compiling without custom icon.")
-    
-    # Entry point
-    entry_point = os.path.join(project_root, "cypy", "app.py")
-    cmd.append(entry_point)
-    
-    print(f"[Build] Running compilation command:\n{' '.join(cmd)}")
-    
-    # Run PyInstaller
+
+    curr_system = platform.system().lower()
+    is_favicon_exist = ICON_PATH.is_file()
+    if not is_favicon_exist:
+        print(
+            "[Build] Warning: favicon.ico not found, compiling without custom icon.",
+            file=sys.stderr
+        )
+
+    if curr_system == "windows":
+        cmd.extend([
+            f"--windows-icon-from-ico={ICON_PATH}" if is_favicon_exist else ''
+        ])
+    elif curr_system == "darwin":
+        cmd.extend([
+            f"--macos-app-icon={ICON_PATH}" if is_favicon_exist else ''
+        ])
+
+    cmd = [c for c in cmd if c.strip() != '']
+    cmd.append(str(APP_ENTRY_POINT))
+
+    print(f"[Build] Running Nuitka compilation command:\n{' '.join(cmd)}")
     try:
         subprocess.check_call(cmd)
-        print("[Build] PyInstaller compilation completed successfully!")
+        print("[Build] Nuitka compilation completed successfully!")
     except subprocess.CalledProcessError as e:
-        print(f"[Build] PyInstaller compilation failed with exit code: {e.returncode}")
+        print(f"[Build] Nuitka compilation failed with exit code: {e.returncode}")
         sys.exit(1)
 
-    # Package the output into a zip file in a 'releases' folder
-    package_release(project_root)
+    package_release(ROOT_DIR)
 
-def package_release(project_root):
-    dist_dir = os.path.join(project_root, "dist")
-    releases_dir = os.path.join(project_root, "releases")
-    os.makedirs(releases_dir, exist_ok=True)
-    
-    # Identify OS and Architecture
+def package_release(project_root: Union[str, Path]):
+    project_root = Path(project_root).absolute()
+    RELEASES_DIR.mkdir(parents=True, exist_ok=True)
+    DIST_DIR.mkdir(parents=True, exist_ok=True)
+
     os_system = platform.system().lower()
-    if os_system == "darwin":
-        os_name = "macos"
+    arch = normalize_arch(platform.machine())
+    os_name = "macos" if os_system == "darwin" else os_system
+
+    # Naming convention matching xidown: cypy-[version]-[os]-[arch][-portable].zip
+    if os_name == "windows":
+        zip_name = f"{APP_NAME}-{APP_VER}-{os_name}-{arch}-portable.zip"
     else:
-        os_name = os_system
-        
-    raw_arch = platform.machine().lower()
-    if raw_arch in ["amd64", "x86_64"]:
-        arch = "x64"
-    elif raw_arch in ["i386", "i686", "x86"]:
-        arch = "x86"
-    elif "arm" in raw_arch or "aarch" in raw_arch:
-        arch = "arm64"
-    else:
-        arch = raw_arch
-        
-    zip_name = f"cypy-{os_name}-{arch}.zip"
-    zip_path = os.path.join(releases_dir, zip_name)
-    
+        zip_name = f"{APP_NAME}-{APP_VER}-{os_name}-{arch}.zip"
+
+    zip_path = RELEASES_DIR / zip_name
     print(f"[Build] Packaging application for {os_name} ({arch})...")
+
+    nuitka_output = None
+    dist_dir_items = list(DIST_DIR.iterdir())
     
-    # In --onedir mode, we create a temporary directory named 'cypy_pkg_temp' inside 'dist' to bundle everything.
-    # This avoids any naming conflicts with the compiled output directory.
-    app_folder_path = os.path.join(dist_dir, "cypy_pkg_temp")
-    if os.path.exists(app_folder_path):
-        try:
-            shutil.rmtree(app_folder_path)
-        except Exception:
-            pass
-    os.makedirs(app_folder_path, exist_ok=True)
-    
-    # 1. Copy the compiled output into our temporary release folder
-    if os_name == "macos":
-        app_bundle = os.path.join(dist_dir, "cypy.app")
-        if os.path.exists(app_bundle):
-            shutil.copytree(app_bundle, os.path.join(app_folder_path, "cypy.app"))
-            print("[Build] Copied cypy.app bundle into release folder.")
-        else:
-            # Fallback to binary directory if no bundle exists
-            src_dir = os.path.join(dist_dir, "cypy")
-            if os.path.exists(src_dir):
-                shutil.copytree(src_dir, os.path.join(app_folder_path, "cypy"))
-                print("[Build] Copied cypy binary directory into release folder.")
-            else:
-                print("[Build] Error: Compiled output not found.")
-                sys.exit(1)
+    std_dist = DIST_DIR / "app.dist"
+    if std_dist.is_dir() and any(std_dist.iterdir()):
+        nuitka_output = std_dist
     else:
-        # For Windows/Linux, copy all contents from dist/cypy/ into dist/cypy_pkg_temp/
-        src_dir = os.path.join(dist_dir, "cypy")
-        if os.path.exists(src_dir):
-            for item in os.listdir(src_dir):
-                s = os.path.join(src_dir, item)
-                d = os.path.join(app_folder_path, item)
-                if os.path.isdir(s):
-                    shutil.copytree(s, d)
-                else:
-                    shutil.copy2(s, d)
-            print("[Build] Copied all compiled files and folders into release folder.")
+        for item in dist_dir_items:
+            if (item.name.endswith(".dist") or item.name.endswith(".app")) and item.is_dir():
+                if not any(item.iterdir()): continue
+                nuitka_output = item
+                break
+
+    if not nuitka_output or not nuitka_output.is_dir():
+        print(
+            f"[Build] Error: Nuitka valid output directory not found.\n" +
+            f"[Build] Contents of 'dist/': {dist_dir_items if dist_dir_items else 'NOT FOUND'}",
+            file=sys.stderr
+        )
+        sys.exit(2)
+
+    print(f"[Build] Found Nuitka output at: {nuitka_output}")
+
+    app_folder_path = DIST_DIR / f"{APP_NAME}_pkg_temp"
+    if app_folder_path.is_dir():
+        try: shutil.rmtree(app_folder_path)
+        except Exception as e:
+            print(f"[Build] Warning: Failed to remove old temporary directory: {e}", file=sys.stderr)
+    app_folder_path.mkdir(exist_ok=True)
+
+    # Copy files
+    for item in os.listdir(nuitka_output):
+        s = nuitka_output / item
+        d = app_folder_path / item
+        if s.is_dir():
+            shutil.copytree(s, d, symlinks=True)
         else:
-            print(f"[Build] Error: Compiled directory not found at: {src_dir}")
-            sys.exit(1)
-            
-    # 2. Copy README.md into the release folder before zipping
-    readme_path = os.path.join(project_root, "README.md")
-    if os.path.exists(readme_path):
+            shutil.copy2(s, d, follow_symlinks=False)
+    print("[Build] Copied all compiled files and folders into release folder.")
+
+    # Copy extra files
+    for extra in EXTRA_FILES:
+        if not extra.is_file(): continue
         try:
-            shutil.copy(readme_path, os.path.join(app_folder_path, "README.md"))
-            print("[Build] Copied README.md into release folder.")
+            shutil.copy(extra, app_folder_path / extra.name)
+            print(f"[Build] Copied {extra.name} into release folder.")
         except Exception as e:
-            print(f"[Build] Warning: Failed to copy README.md: {e}")
-            
-    # 3. Copy LICENSE into the release folder before zipping
-    license_path = os.path.join(project_root, "LICENSE")
-    if os.path.exists(license_path):
+            print(f"[Build] Warning: Failed to copy {extra.name}: {e}", file=sys.stderr)
+
+    has_cleanup: bool = False
+    def cleanup() -> None:
+        nonlocal has_cleanup
+        if has_cleanup or not app_folder_path.is_dir(): return
         try:
-            shutil.copy(license_path, os.path.join(app_folder_path, "LICENSE"))
-            print("[Build] Copied LICENSE into release folder.")
+            has_cleanup = True
+            shutil.rmtree(app_folder_path)
         except Exception as e:
-            print(f"[Build] Warning: Failed to copy LICENSE: {e}")
-            
-    # 4. Copy .env.example into the release folder before zipping
-    env_ex_path = os.path.join(project_root, ".env.example")
-    if os.path.exists(env_ex_path):
-        try:
-            shutil.copy(env_ex_path, os.path.join(app_folder_path, ".env.example"))
-            print("[Build] Copied .env.example into release folder.")
-        except Exception as e:
-            print(f"[Build] Warning: Failed to copy .env.example: {e}")
-            
-    # 5. Zip the entire folder
+            print(f"[Build] Warning: Failed to clean up temporary release folder: {e}", file=sys.stderr)
+
     try:
         print(f"[Build] Zipping folder: {app_folder_path} to {zip_path}...")
-        zip_directory(app_folder_path, zip_path)
-        print(f"[Build] Packaged successfully to: {zip_path}")
-        print(f"[Build] Package size: {os.path.getsize(zip_path) / (1024*1024):.2f} MB")
+        created_zip = safe_zip_directory(app_folder_path, zip_path)
+        created_zip_path = Path(created_zip)
+        if not created_zip_path.is_file():
+            raise FileNotFoundError(f"[Build] Expected archive not found: {created_zip}")
+
+        if RELEASES_DIR not in created_zip_path.parents:
+            created_zip_path = Path(shutil.move(created_zip_path, RELEASES_DIR / created_zip_path.name))
+
+        print(f"[Build] Packaged successfully to: {created_zip_path}")
+        print(f"[Build] Package size: {created_zip_path.stat().st_size / (1024*1024):.2f} MB")
     except Exception as e:
-        print(f"[Build] Packaging failed: {e}")
+        print(f"[Build] Packaging failed: {e}", file=sys.stderr)
         sys.exit(1)
     finally:
-        # 6. Clean up our temporary release folder
-        if os.path.exists(app_folder_path):
-            try:
-                shutil.rmtree(app_folder_path)
-            except Exception as e:
-                print(f"[Build] Warning: Failed to clean up temporary release folder: {e}")
+        cleanup()
 
-def zip_directory(folder_path, zip_path):
-    with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
-        for root, dirs, files in os.walk(folder_path):
-            for file in files:
-                file_path = os.path.join(root, file)
-                # Maintain relative path inside zip, prefixing with 'cypy/'
-                rel_path = os.path.relpath(file_path, folder_path)
-                zipf.write(file_path, os.path.join("cypy", rel_path))
+def safe_zip_directory(folder_path: Union[str, Path], zip_path: Union[str, Path]) -> str:
+    folder_path = Path(folder_path).resolve()
+    zip_path = Path(zip_path).resolve()
+
+    if not folder_path.is_dir():
+        raise NotADirectoryError(folder_path)
+
+    archive_root = folder_path.parent / APP_NAME
+    folder_path.rename(archive_root)
+    print(f"[Build] Renamed '{folder_path}' -> '{archive_root}'")
+
+    try:
+        archive = shutil.make_archive(
+            str(zip_path.with_suffix("")),
+            "zip",
+            archive_root.parent,
+            archive_root.name,
+        )
+        print(f"[Build] Created ZIP archive: {archive}")
+        return archive
+    finally:
+        archive_root.rename(folder_path)
+        print(f"[Build] Renamed '{archive_root}' -> '{folder_path}'")
 
 if __name__ == "__main__":
     run_build()

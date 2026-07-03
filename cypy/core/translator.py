@@ -13,7 +13,7 @@ try:
 except ImportError:
     rarfile = None
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
-from ultralytics import YOLO
+from cypy.core.yolo_onnx import YOLOONNX as YOLO
 
 import cypy.core.config as config
 from cypy.core.utils import (

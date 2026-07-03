@@ -49,7 +49,7 @@ TARGET_LANGUAGE = os.getenv("TARGET_LANGUAGE", "")
 
 
 # ✦ Assets Path - YOLO model and font files go here~ ✦
-MODEL_YOLO = os.path.join(ASSETS_DIR, "eyecyre.pt")
+MODEL_YOLO = os.path.join(ASSETS_DIR, "eyecyre.onnx")
 FONT_MANGA = os.path.join(ASSETS_DIR, "Komika Axis.ttf")
 
 

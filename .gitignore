@@ -6,12 +6,30 @@ __pycache__/
 # Temporary Manga Translation files
 cypy_cache/
 
+# Data & Config files
+cypy_profile.json
+data/
+*.txt
+!requirements.txt
+
+# Binaries
+bin/
+*.exe
+
 # Environments
 .env
-.venv
+.venv*/
 env/
-venv/
+venv*/
 ENV/
+env.bak/
+venv.bak/
+
+# Logs
+*.log
+
+# Caches
+.cache/
 
 # OS specific
 .DS_Store
@@ -22,8 +40,12 @@ Thumbs.db
 *.egg-info/
 build/
 dist/
+dist_nuitka/
 releases/
+*.spec
 
-# Config
-cypy_profile.json
-data/
+# Nuitka & Installer build artifacts
+*.build/
+*.dist/
+*.onefile-build/
+*.iss
