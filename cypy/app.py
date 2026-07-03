@@ -274,6 +274,9 @@ def setup_provider(provider_name=None):
     if provider_name == "custom":
         extra["base_url"] = config.CUSTOM_BASE_URL
 
+    # Save updated keys/endpoints to data/settings.json
+    config.save_settings()
+
     provider = create_provider(provider_name, api_key=api_key, model_name=model_name, **extra)
     return provider
 
@@ -371,15 +374,13 @@ def main():
 
     ui.print_logo(__version__)
 
-    env_path = os.path.join(config.ROOT_DIR, ".env")
-    has_provider = _env_has_key(env_path, "LLM_PROVIDER")
-    has_language = _env_has_key(env_path, "TARGET_LANGUAGE")
-
-    if has_provider:
+    # Load LLM provider from settings.json or env
+    if config.LLM_PROVIDER:
         provider_name = config.LLM_PROVIDER
     else:
         provider_name = pilih_provider()
-        _save_to_env_simple(env_path, "LLM_PROVIDER", provider_name)
+        config.LLM_PROVIDER = provider_name
+        config.save_settings()
 
     provider = setup_provider(provider_name)
 
@@ -392,11 +393,13 @@ def main():
 
     yolo_model = YOLO(config.MODEL_YOLO)
 
-    if has_language:
-        target_language = config.TARGET_LANGUAGE or "Indonesian"
+    # Load Target Language from settings.json or env
+    if config.TARGET_LANGUAGE:
+        target_language = config.TARGET_LANGUAGE
     else:
         target_language = pilih_bahasa()
-        _save_to_env_simple(env_path, "TARGET_LANGUAGE", target_language)
+        config.TARGET_LANGUAGE = target_language
+        config.save_settings()
 
     # Show current config
     tampilkan_status(provider, target_language)
@@ -414,11 +417,22 @@ def main():
 
             if cmd in ("lang", "switch", "change"):
                 target_language = pilih_bahasa()
+                config.TARGET_LANGUAGE = target_language
+                config.save_settings()
                 continue
 
             if cmd in ("provider", "api"):
                 provider_name = pilih_provider()
                 provider = setup_provider(provider_name)
+                config.LLM_PROVIDER = provider_name
+                # Save default model name for that provider
+                _, default_model = config.get_provider_config(provider_name)
+                if provider_name == "gemini": config.MODEL_GEMINI = default_model
+                elif provider_name == "openai": config.MODEL_OPENAI = default_model
+                elif provider_name == "openrouter": config.MODEL_OPENROUTER = default_model
+                elif provider_name == "zen": config.MODEL_ZEN = default_model
+                elif provider_name == "custom": config.MODEL_CUSTOM = default_model
+                config.save_settings()
                 tampilkan_status(provider, target_language)
                 continue
 
@@ -426,6 +440,13 @@ def main():
                 new_model = input("Enter model name: ").strip()
                 if new_model:
                     provider.model_name = new_model
+                    p_name = provider.provider_name.lower()
+                    if "gemini" in p_name: config.MODEL_GEMINI = new_model
+                    elif "openai" in p_name: config.MODEL_OPENAI = new_model
+                    elif "openrouter" in p_name: config.MODEL_OPENROUTER = new_model
+                    elif "zen" in p_name: config.MODEL_ZEN = new_model
+                    elif "custom" in p_name: config.MODEL_CUSTOM = new_model
+                    config.save_settings()
                     print(f"[+] Model changed to: {new_model}")
                 continue
 

@@ -263,3 +263,86 @@ def save_local_profile():
         print(f"[!] Error saving local profile: {e}")
         return False
 
+
+# ==========================================
+# ✦ PERSISTENT SETTINGS (data/settings.json) ✦
+# ==========================================
+DATA_DIR = os.path.join(ROOT_DIR, "data")
+os.makedirs(DATA_DIR, exist_ok=True)
+SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
+
+def load_settings():
+    """Loads target language, provider, and model configurations from data/settings.json."""
+    global LLM_PROVIDER, TARGET_LANGUAGE
+    global GEMINI_API_KEY, MODEL_GEMINI
+    global OPENAI_API_KEY, MODEL_OPENAI
+    global OPENROUTER_API_KEY, MODEL_OPENROUTER
+    global ZEN_API_KEY, MODEL_ZEN
+    global CUSTOM_API_KEY, CUSTOM_BASE_URL, MODEL_CUSTOM
+    
+    if os.path.exists(SETTINGS_FILE):
+        try:
+            with open(SETTINGS_FILE, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            
+            LLM_PROVIDER = data.get("llm_provider", LLM_PROVIDER)
+            TARGET_LANGUAGE = data.get("target_language", TARGET_LANGUAGE)
+            
+            # API keys and models
+            GEMINI_API_KEY = data.get("gemini_api_key", GEMINI_API_KEY)
+            MODEL_GEMINI = data.get("model_gemini", MODEL_GEMINI)
+            
+            OPENAI_API_KEY = data.get("openai_api_key", OPENAI_API_KEY)
+            MODEL_OPENAI = data.get("model_openai", MODEL_OPENAI)
+            
+            OPENROUTER_API_KEY = data.get("openrouter_api_key", OPENROUTER_API_KEY)
+            MODEL_OPENROUTER = data.get("model_openrouter", MODEL_OPENROUTER)
+            
+            ZEN_API_KEY = data.get("zen_api_key", ZEN_API_KEY)
+            MODEL_ZEN = data.get("model_zen", MODEL_ZEN)
+            
+            CUSTOM_API_KEY = data.get("custom_api_key", CUSTOM_API_KEY)
+            CUSTOM_BASE_URL = data.get("custom_base_url", CUSTOM_BASE_URL)
+            MODEL_CUSTOM = data.get("model_custom", MODEL_CUSTOM)
+            
+            # Synchronize environment variables for the session
+            if GEMINI_API_KEY: os.environ["GEMINI_API_KEY"] = GEMINI_API_KEY
+            if OPENAI_API_KEY: os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
+            if OPENROUTER_API_KEY: os.environ["OPENROUTER_API_KEY"] = OPENROUTER_API_KEY
+            if ZEN_API_KEY: os.environ["ZEN_API_KEY"] = ZEN_API_KEY
+            if CUSTOM_API_KEY: os.environ["CUSTOM_API_KEY"] = CUSTOM_API_KEY
+            if CUSTOM_BASE_URL: os.environ["CUSTOM_BASE_URL"] = CUSTOM_BASE_URL
+            
+            return True
+        except Exception as e:
+            print(f"[!] Error loading settings: {e}")
+    return False
+
+def save_settings():
+    """Saves current provider, language, and model configurations to data/settings.json."""
+    data = {
+        "llm_provider": LLM_PROVIDER,
+        "target_language": TARGET_LANGUAGE,
+        "gemini_api_key": GEMINI_API_KEY,
+        "model_gemini": MODEL_GEMINI,
+        "openai_api_key": OPENAI_API_KEY,
+        "model_openai": MODEL_OPENAI,
+        "openrouter_api_key": OPENROUTER_API_KEY,
+        "model_openrouter": MODEL_OPENROUTER,
+        "zen_api_key": ZEN_API_KEY,
+        "model_zen": MODEL_ZEN,
+        "custom_api_key": CUSTOM_API_KEY,
+        "custom_base_url": CUSTOM_BASE_URL,
+        "model_custom": MODEL_CUSTOM
+    }
+    try:
+        with open(SETTINGS_FILE, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=4)
+        return True
+    except Exception as e:
+        print(f"[!] Error saving settings: {e}")
+        return False
+
+# Initialize settings load
+load_settings()
+
