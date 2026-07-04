@@ -1,9 +1,10 @@
+import base64
 import cv2
+import io
 import os
 import sys
-import zipfile
 import numpy as np
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageFont
 
 try:
     import requests as _requests
@@ -1038,3 +1039,9 @@ def create_shortcut_if_first_run():
         print("[Utils] Desktop shortcut successfully created.")
     except Exception as e:
         print(f"[Utils] Failed to create desktop shortcut: {e}")
+
+def image2base64(image: Image.Image) -> str:
+    """Convert `PIL.Image.Image` image into Base64 string with UTF-8 encoding."""
+    buffered = io.BytesIO()
+    image.save(buffered, format="PNG")
+    return base64.b64encode(buffered.getvalue()).decode("utf-8")
