@@ -2,6 +2,8 @@ import os
 import sys
 from dotenv import load_dotenv
 
+from cypy.core.types import APIKey
+
 # ✦ Path Helper - Let's find where everything is~ ✦
 CORE_DIR = os.path.dirname(os.path.abspath(__file__))
 # CORE_DIR is where our core essence lies
@@ -21,36 +23,39 @@ load_dotenv(os.path.join(ROOT_DIR, ".env"))
 # ✦ LLM PROVIDER SETTINGS - Choose your translation engine~ ♪ ✦
 # ==========================================
 # Supported providers: gemini, openai, zen, openrouter, custom
-LLM_PROVIDER = os.getenv("LLM_PROVIDER", "gemini").lower()
+LLM_PROVIDER: str = os.getenv("LLM_PROVIDER", "gemini").lower()
 
 # Google Gemini
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "")
-MODEL_GEMINI = os.getenv("MODEL_GEMINI", "gemini-3.1-flash-lite")
+GEMINI_API_KEY: APIKey = os.getenv("GEMINI_API_KEY", "")
+MODEL_GEMINI: str = os.getenv("MODEL_GEMINI", "gemini-3.1-flash-lite")
 
 # OpenRouter (https://openrouter.ai)
-OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "")
-MODEL_OPENROUTER = os.getenv("MODEL_OPENROUTER", "qwen/qwen2.5-vl-72b-instruct:free")
+OPENROUTER_API_KEY: APIKey = os.getenv("OPENROUTER_API_KEY", "")
+MODEL_OPENROUTER: str = os.getenv("MODEL_OPENROUTER", "qwen/qwen2.5-vl-72b-instruct:free")
 
 # OpenAI (https://platform.openai.com)
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-MODEL_OPENAI = os.getenv("MODEL_OPENAI", "gpt-5.4-mini")
+OPENAI_API_KEY: APIKey = os.getenv("OPENAI_API_KEY", "")
+MODEL_OPENAI: str = os.getenv("MODEL_OPENAI", "gpt-5.4-mini")
 
 # Zen (https://opencode.ai) — no API key required
-ZEN_API_KEY = os.getenv("ZEN_API_KEY", "")
-MODEL_ZEN = os.getenv("MODEL_ZEN", "minimax-m3-free")
+ZEN_API_KEY: APIKey = os.getenv("ZEN_API_KEY", "")
+MODEL_ZEN: str = os.getenv("MODEL_ZEN", "minimax-m3-free")
 
 # Custom OpenAI-compatible provider
-CUSTOM_API_KEY = os.getenv("CUSTOM_API_KEY", "")
-CUSTOM_BASE_URL = os.getenv("CUSTOM_BASE_URL", "")
-MODEL_CUSTOM = os.getenv("MODEL_CUSTOM", "gpt-5.4-mini")
+CUSTOM_API_KEY: APIKey = os.getenv("CUSTOM_API_KEY", "")
+CUSTOM_BASE_URL: str = os.getenv("CUSTOM_BASE_URL", "")
+MODEL_CUSTOM: str = os.getenv("MODEL_CUSTOM", "gpt-5.4-mini")
 
 # Target language (saved after first run)
-TARGET_LANGUAGE = os.getenv("TARGET_LANGUAGE", "")
+TARGET_LANGUAGE: str = os.getenv("TARGET_LANGUAGE", "")
 
 
 # ✦ Assets Path - YOLO model and font files go here~ ✦
 MODEL_YOLO = os.path.join(ASSETS_DIR, "eyecyre.onnx")
 FONT_MANGA = os.path.join(ASSETS_DIR, "Komika Axis.ttf")
+
+# Timeout to be set when requesting to LLM provider endpoint
+REQUEST_TIMEOUT = 60 * 2  # 120s (2 mins)
 
 
 # ==========================================
@@ -142,7 +147,7 @@ MANUAL_TRANSLATION_OVERRIDE = {}
 # ==========================================
 # ✦ PROVIDER HELPERS - Utility functions for provider management~ ♪ ✦
 # ==========================================
-def get_provider_config(provider_name=None):
+def get_provider_config(provider_name: str = ""):
     """
     Returns (api_key, model_name) for the given provider.
     Defaults to the currently configured LLM_PROVIDER.
@@ -159,8 +164,8 @@ def get_provider_config(provider_name=None):
         return ZEN_API_KEY, MODEL_ZEN
     elif provider == "custom":
         return CUSTOM_API_KEY, MODEL_CUSTOM
-    else:
-        return "", ""
+
+    return "", ""
 
 
 # ==========================================
@@ -345,4 +350,3 @@ def save_settings():
 
 # Initialize settings load
 load_settings()
-
