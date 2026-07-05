@@ -725,6 +725,12 @@ def gabung_kotak_tumpang_tindih(boxes):
         return []
 
     boxes = [list(map(int, b)) for b in boxes]
+    # Sort boxes by x1 to allow early exit when scanning for overlaps.
+    # This doesn't change correctness because if a box's x1 is greater
+    # than the current x2, they cannot overlap in x; the outer loop
+    # repeats until no merges occur, so expanded boxes will be re-checked.
+    boxes.sort(key=lambda b: b[0])
+
     berubah = True
 
     while berubah:
@@ -741,6 +747,11 @@ def gabung_kotak_tumpang_tindih(boxes):
             for j in range(i + 1, len(boxes)):
                 if dipakai[j]:
                     continue
+
+                # Since boxes are sorted by x1, if the next box starts
+                # after current x2 it cannot overlap — break to skip many checks.
+                if boxes[j][0] > x2:
+                    break
 
                 if _perlu_digabung([x1, y1, x2, y2], boxes[j]):
                     ox1, oy1, ox2, oy2 = boxes[j]
