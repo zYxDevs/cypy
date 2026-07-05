@@ -11,6 +11,7 @@ except ImportError:
     _requests = None
 
 import cypy.core.config as config
+import types
 
 # ==========================================
 # ✦ FONT MANAGEMENT - Smart font selection & auto-download~ ♪ ✦
@@ -27,6 +28,37 @@ _active_target_language = None
 
 # Font cache to avoid repeated lookups
 _font_path_cache = {}
+# In-memory cache for loaded ImageFont objects keyed by (path_or_key, size)
+_font_object_cache = {}
+
+
+def _get_font_object(path, size):
+    """Return a cached PIL ImageFont instance for (path, size), loading if needed."""
+    key = (path, int(size))
+    if key in _font_object_cache:
+        return _font_object_cache[key]
+
+    try:
+        font = ImageFont.truetype(path, int(size))
+    except Exception:
+        try:
+            font = ImageFont.load_default()
+        except Exception:
+            font = None
+
+    # Ensure a `getsize(text)` method exists for compatibility with older code/tests.
+    if font is not None and not hasattr(font, 'getsize'):
+        try:
+            def _getsize(txt, f=font):
+                m = f.getmask(txt)
+                return m.size
+
+            font.getsize = types.MethodType(lambda self, txt: _getsize(txt), font)
+        except Exception:
+            pass
+
+    _font_object_cache[key] = font
+    return font
 
 # Language → Google Fonts family name mapping for Noto Sans variants
 _NOTO_SANS_MAP = {
@@ -231,42 +263,42 @@ def _get_font_for_text(text, size, language=None):
 
         # Japanese uses bundled KosugiMaru.ttf
         if lang == "japanese" and os.path.exists(FONT_JAPANESE):
-            try:
-                return ImageFont.truetype(FONT_JAPANESE, size)
-            except Exception:
-                pass
+            font = _get_font_object(FONT_JAPANESE, size)
+            if font:
+                return font
 
-        # Check cache first
+        # Check cached font path first and reuse loaded font objects
         cache_key = f"lang_{lang}"
         if cache_key in _font_path_cache:
             cached = _font_path_cache[cache_key]
             if cached:
-                try:
-                    return ImageFont.truetype(cached, size)
-                except Exception:
-                    pass
+                font = _get_font_object(cached, size)
+                if font:
+                    return font
 
         # Try downloading Noto Sans for this language
         if lang:
             noto_path = _download_noto_font(lang)
             _font_path_cache[cache_key] = noto_path
             if noto_path:
-                try:
-                    return ImageFont.truetype(noto_path, size)
-                except Exception:
-                    pass
+                font = _get_font_object(noto_path, size)
+                if font:
+                    return font
 
         # Last resort: try KosugiMaru (covers CJK well)
         if os.path.exists(FONT_JAPANESE):
-            try:
-                return ImageFont.truetype(FONT_JAPANESE, size)
-            except Exception:
-                pass
+            font = _get_font_object(FONT_JAPANESE, size)
+            if font:
+                return font
 
     try:
-        return ImageFont.truetype(config.FONT_MANGA, size)
+        font = _get_font_object(config.FONT_MANGA, size)
+        if font:
+            return font
     except Exception:
-        return ImageFont.load_default()
+        pass
+
+    return ImageFont.load_default()
 
 
 def bersihkan_json_dari_gemini(teks_mentah):
