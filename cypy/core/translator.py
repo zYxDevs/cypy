@@ -8,6 +8,7 @@ import shutil
 import concurrent.futures
 import threading
 import uuid
+import numpy as np
 try:
     import rarfile
 except ImportError:
@@ -154,7 +155,7 @@ def perkecil_daftar_potongan_jika_mosaik_terlalu_tinggi(
 
 def proses_satu_gambar(image_path, yolo_model, provider, target_language="Indonesian"):
     """Processes a single manga page. Splits landscape images into two pages automatically~ ♪"""
-    img = cv2.imread(image_path)
+    img = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         print("[!] Image file is corrupt or unreadable.")
         return None
@@ -194,7 +195,7 @@ def proses_satu_gambar(image_path, yolo_model, provider, target_language="Indone
         valid_res = [res for res, _ in splits if res]
         if len(valid_res) == num_splits:
             # Muat semua hasil gambar
-            img_results = [cv2.imread(res) for res in valid_res]
+            img_results = [cv2.imdecode(np.fromfile(res, dtype=np.uint8), cv2.IMREAD_COLOR) for res in valid_res]
             
             # Urutannya dari kanan ke kiri. Balikkan urutan visual dari kiri ke kanan untuk hconcat.
             img_results.reverse()
@@ -234,7 +235,7 @@ def _proses_satu_gambar_core(image_path, yolo_model, provider, target_language="
     lang_code = config.LANG_CODES.get(target_language.lower(), target_language[:2].lower() if target_language else "tr")
     suffix = f"_cypytr_{lang_code}"
 
-    img = cv2.imread(image_path)
+    img = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
 
     if img is None:
         print("[!] Image file is corrupt or unreadable.")

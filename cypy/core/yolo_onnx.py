@@ -44,7 +44,7 @@ class YOLOONNX:
     def predict(self, source, conf=0.25, iou=0.45, verbose=False):
         # source can be a numpy array (BGR image) or path (string)
         if isinstance(source, str):
-            img = cv2.imread(source)
+            img = cv2.imdecode(np.fromfile(source, dtype=np.uint8), cv2.IMREAD_COLOR)
             if img is None:
                 raise ValueError(f"Could not read image from path: {source}")
         else:
