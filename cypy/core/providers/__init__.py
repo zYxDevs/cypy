@@ -6,11 +6,11 @@ from cypy.core.providers.gemini import GeminiProvider
 from cypy.core.providers.openrouter import OpenRouterProvider
 from cypy.core.providers.openai import OpenAIProvider
 from cypy.core.providers.zen import ZenProvider
+from cypy.core.providers.opencodego import OpenCodeGoProvider
 from cypy.core.providers.custom import CustomProvider
 
 ProviderNames: TypeAlias = Literal[
-    # Please add the key manually if updating the `PROVIDER_MAP` dictionary above
-    "gemini", "openai", "zen", "openrouter", "custom"
+    "gemini", "openai", "zen", "openrouter", "opencodego", "custom"
 ]
 
 PROVIDER_MAP: Dict[ProviderNames, Type[LLMProvider]] = {
@@ -18,6 +18,7 @@ PROVIDER_MAP: Dict[ProviderNames, Type[LLMProvider]] = {
     "openai": OpenAIProvider,
     "zen": ZenProvider,
     "openrouter": OpenRouterProvider,
+    "opencodego": OpenCodeGoProvider,
     "custom": CustomProvider,
 }
 
@@ -30,6 +31,8 @@ def create_provider(provider_name: Literal["openai"], /, api_key: APIKey, model_
 def create_provider(provider_name: Literal["zen"], /, api_key: APIKey, model_name: str, **kwargs: AnyDict) -> ZenProvider: ...
 @overload
 def create_provider(provider_name: Literal["openrouter"], /, api_key: APIKey, model_name: str, **kwargs: AnyDict) -> OpenRouterProvider: ...
+@overload
+def create_provider(provider_name: Literal["opencodego"], /, api_key: APIKey, model_name: str, **kwargs: AnyDict) -> OpenCodeGoProvider: ...
 @overload
 def create_provider(provider_name: Literal["custom"], /, api_key: APIKey, model_name: str, **kwargs: AnyDict) -> CustomProvider: ...
 @overload

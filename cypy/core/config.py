@@ -41,6 +41,10 @@ MODEL_OPENAI: str = os.getenv("MODEL_OPENAI", "gpt-5.4-mini")
 ZEN_API_KEY: APIKey = os.getenv("ZEN_API_KEY", "")
 MODEL_ZEN: str = os.getenv("MODEL_ZEN", "minimax-m3-free")
 
+# OpenCode Go (https://opencode.ai) — API key required
+OPENCODEGO_API_KEY: APIKey = os.getenv("OPENCODEGO_API_KEY", "")
+MODEL_OPENCODEGO: str = os.getenv("MODEL_OPENCODEGO", "minimax-m3")
+
 # Custom OpenAI-compatible provider
 CUSTOM_API_KEY: APIKey = os.getenv("CUSTOM_API_KEY", "")
 CUSTOM_BASE_URL: str = os.getenv("CUSTOM_BASE_URL", "")
@@ -162,6 +166,8 @@ def get_provider_config(provider_name: str = ""):
         return OPENAI_API_KEY, MODEL_OPENAI
     elif provider == "zen":
         return ZEN_API_KEY, MODEL_ZEN
+    elif provider == "opencodego":
+        return OPENCODEGO_API_KEY, MODEL_OPENCODEGO
     elif provider == "custom":
         return CUSTOM_API_KEY, MODEL_CUSTOM
 
@@ -283,6 +289,7 @@ def load_settings():
     global OPENAI_API_KEY, MODEL_OPENAI
     global OPENROUTER_API_KEY, MODEL_OPENROUTER
     global ZEN_API_KEY, MODEL_ZEN
+    global OPENCODEGO_API_KEY, MODEL_OPENCODEGO
     global CUSTOM_API_KEY, CUSTOM_BASE_URL, MODEL_CUSTOM
     
     if os.path.exists(SETTINGS_FILE):
@@ -306,6 +313,9 @@ def load_settings():
             ZEN_API_KEY = data.get("zen_api_key", ZEN_API_KEY)
             MODEL_ZEN = data.get("model_zen", MODEL_ZEN)
             
+            OPENCODEGO_API_KEY = data.get("opencodego_api_key", OPENCODEGO_API_KEY)
+            MODEL_OPENCODEGO = data.get("model_opencodego", MODEL_OPENCODEGO)
+            
             CUSTOM_API_KEY = data.get("custom_api_key", CUSTOM_API_KEY)
             CUSTOM_BASE_URL = data.get("custom_base_url", CUSTOM_BASE_URL)
             MODEL_CUSTOM = data.get("model_custom", MODEL_CUSTOM)
@@ -315,6 +325,7 @@ def load_settings():
             if OPENAI_API_KEY: os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
             if OPENROUTER_API_KEY: os.environ["OPENROUTER_API_KEY"] = OPENROUTER_API_KEY
             if ZEN_API_KEY: os.environ["ZEN_API_KEY"] = ZEN_API_KEY
+            if OPENCODEGO_API_KEY: os.environ["OPENCODEGO_API_KEY"] = OPENCODEGO_API_KEY
             if CUSTOM_API_KEY: os.environ["CUSTOM_API_KEY"] = CUSTOM_API_KEY
             if CUSTOM_BASE_URL: os.environ["CUSTOM_BASE_URL"] = CUSTOM_BASE_URL
             
@@ -336,6 +347,8 @@ def save_settings():
         "model_openrouter": MODEL_OPENROUTER,
         "zen_api_key": ZEN_API_KEY,
         "model_zen": MODEL_ZEN,
+        "opencodego_api_key": OPENCODEGO_API_KEY,
+        "model_opencodego": MODEL_OPENCODEGO,
         "custom_api_key": CUSTOM_API_KEY,
         "custom_base_url": CUSTOM_BASE_URL,
         "model_custom": MODEL_CUSTOM

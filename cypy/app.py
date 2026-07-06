@@ -41,6 +41,12 @@ PROVIDER_INFO = {
         "url": "https://opencode.ai/auth",
         "desc": "Free models, optional API key for more quota",
     },
+    "opencodego": {
+        "name": "OpenCode Go",
+        "env_key": "OPENCODEGO_API_KEY",
+        "url": "https://opencode.ai/auth",
+        "desc": "API key required, high-performance models",
+    },
     "openrouter": {
         "name": "OpenRouter",
         "env_key": "OPENROUTER_API_KEY",
@@ -102,19 +108,22 @@ def pilih_provider():
         "[1] Google Gemini",
         "[2] OpenAI (GPT-5.4)",
         "[3] Zen (opencode.ai)",
-        "[4] OpenRouter",
-        "[5] Custom (OpenAI-compatible)",
+        "[4] OpenCode Go",
+        "[5] OpenRouter",
+        "[6] Custom (OpenAI-compatible)",
     ]
     ui.print_box("API Provider Selection:", options, col_width=28)
 
-    choice = input("Select provider (1-5) [Default: 1]: ").strip()
+    choice = input("Select provider (1-6) [Default: 1]: ").strip()
     if choice == "2":
         return "openai"
     elif choice == "3":
         return "zen"
     elif choice == "4":
-        return "openrouter"
+        return "opencodego"
     elif choice == "5":
+        return "openrouter"
+    elif choice == "6":
         return "custom"
     else:
         return "gemini"
@@ -148,6 +157,7 @@ def _save_to_env(env_path, env_key, api_key, provider_name):
         "openai": "MODEL_OPENAI=gpt-5.4-mini\n",
         "openrouter": "MODEL_OPENROUTER=qwen/qwen2.5-vl-72b-instruct:free\n",
         "zen": "MODEL_ZEN=minimax-m3-free\n",
+        "opencodego": "MODEL_OPENCODEGO=minimax-m3\n",
         "custom": "MODEL_CUSTOM=gpt-5.4-mini\n",
     }
     if provider_name in model_defaults:
@@ -273,6 +283,8 @@ def setup_provider(provider_name=None):
                 config.OPENROUTER_API_KEY = api_key
             elif provider_name == "openai":
                 config.OPENAI_API_KEY = api_key
+            elif provider_name == "opencodego":
+                config.OPENCODEGO_API_KEY = api_key
 
             os.environ[info["env_key"]] = api_key
 
@@ -440,6 +452,7 @@ def main():
                 elif provider_name == "openai": config.MODEL_OPENAI = default_model
                 elif provider_name == "openrouter": config.MODEL_OPENROUTER = default_model
                 elif provider_name == "zen": config.MODEL_ZEN = default_model
+                elif provider_name == "opencodego": config.MODEL_OPENCODEGO = default_model
                 elif provider_name == "custom": config.MODEL_CUSTOM = default_model
                 config.save_settings()
                 tampilkan_status(provider, target_language)
@@ -454,6 +467,7 @@ def main():
                     elif "openai" in p_name: config.MODEL_OPENAI = new_model
                     elif "openrouter" in p_name: config.MODEL_OPENROUTER = new_model
                     elif "zen" in p_name: config.MODEL_ZEN = new_model
+                    elif "opencodego" in p_name: config.MODEL_OPENCODEGO = new_model
                     elif "custom" in p_name: config.MODEL_CUSTOM = new_model
                     config.save_settings()
                     print(f"[+] Model changed to: {new_model}")
