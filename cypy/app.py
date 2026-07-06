@@ -463,13 +463,28 @@ def main():
                 if new_model:
                     provider.model_name = new_model
                     p_name = provider.provider_name.lower()
-                    if "gemini" in p_name: config.MODEL_GEMINI = new_model
-                    elif "openai" in p_name: config.MODEL_OPENAI = new_model
-                    elif "openrouter" in p_name: config.MODEL_OPENROUTER = new_model
-                    elif "zen" in p_name: config.MODEL_ZEN = new_model
-                    elif "opencodego" in p_name: config.MODEL_OPENCODEGO = new_model
-                    elif "custom" in p_name: config.MODEL_CUSTOM = new_model
-                    config.save_settings()
+                    # Map provider name to config key
+                    provider_model_map = {
+                        "gemini": "MODEL_GEMINI",
+                        "openai": "MODEL_OPENAI",
+                        "openrouter": "MODEL_OPENROUTER",
+                        "zen": "MODEL_ZEN",
+                        "opencode go": "MODEL_OPENCODEGO",
+                        "custom": "MODEL_CUSTOM",
+                    }
+                    model_env_key = provider_model_map.get(p_name, "")
+                    
+                    if model_env_key:
+                        if "gemini" in p_name: config.MODEL_GEMINI = new_model
+                        elif "openai" in p_name: config.MODEL_OPENAI = new_model
+                        elif "openrouter" in p_name: config.MODEL_OPENROUTER = new_model
+                        elif "zen" in p_name: config.MODEL_ZEN = new_model
+                        elif "opencodego" in p_name or "opencode go" in p_name: config.MODEL_OPENCODEGO = new_model
+                        elif "custom" in p_name: config.MODEL_CUSTOM = new_model
+                        config.save_settings()
+                        # Also update .env file
+                        env_path = os.path.join(config.ROOT_DIR, ".env")
+                        _save_to_env_simple(env_path, model_env_key, new_model)
                     print(f"[+] Model changed to: {new_model}")
                 continue
 
