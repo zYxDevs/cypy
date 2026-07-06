@@ -43,7 +43,7 @@ MODEL_ZEN: str = os.getenv("MODEL_ZEN", "minimax-m3-free")
 
 # OpenCode Go (https://opencode.ai) — API key required
 OPENCODEGO_API_KEY: APIKey = os.getenv("OPENCODEGO_API_KEY", "")
-MODEL_OPENCODEGO: str = os.getenv("MODEL_OPENCODEGO", "minimax-m3")
+MODEL_OPENCODEGO: str = os.getenv("MODEL_OPENCODEGO", "mimo-v2.5")
 
 # Custom OpenAI-compatible provider
 CUSTOM_API_KEY: APIKey = os.getenv("CUSTOM_API_KEY", "")

@@ -157,7 +157,7 @@ def _save_to_env(env_path, env_key, api_key, provider_name):
         "openai": "MODEL_OPENAI=gpt-5.4-mini\n",
         "openrouter": "MODEL_OPENROUTER=qwen/qwen2.5-vl-72b-instruct:free\n",
         "zen": "MODEL_ZEN=minimax-m3-free\n",
-        "opencodego": "MODEL_OPENCODEGO=minimax-m3\n",
+        "opencodego": "MODEL_OPENCODEGO=mimo-v2.5\n",
         "custom": "MODEL_CUSTOM=gpt-5.4-mini\n",
     }
     if provider_name in model_defaults:

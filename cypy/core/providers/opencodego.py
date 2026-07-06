@@ -14,7 +14,7 @@ class OpenCodeGoProvider(LLMProvider):
     Docs: https://opencode.ai/docs
     """
 
-    BASE_URL = "https://opencode.ai/go/v1/chat/completions"
+    BASE_URL = "https://opencode.ai/zen/go/v1/chat/completions"
 
     @property
     def provider_name(self, /) -> Literal["OpenCode Go"]:
