@@ -50,9 +50,9 @@ def _make_output_path(input_path, target_language, output_ext=".png"):
 
 yolo_lock = threading.Lock()
 
-def translate_mosaic(mosaic_image_pil, provider, target_language="Indonesian", max_retry=3):
-    """Sends a single mosaic image to the LLM provider for translation."""
-    for attempt in range(max_retry):
+def terjemahkan_mosaik(gambar_mosaik_pil, provider, target_language="Indonesian", max_retry=3):
+    """Sends a single mosaic image to the LLM provider for translation~ ♪"""
+    for percobaan in range(max_retry):
         try:
             if not provider.validate_api_key():
                 print(f"\n[!] API key for {provider.provider_name} is missing or empty!")
@@ -119,12 +119,12 @@ def translate_mosaic(mosaic_image_pil, provider, target_language="Indonesian", m
                 f'Example output: {{"1": "{example_val_1}", "2": "SKIP", "3": "{example_val_3}", "4": "SKIP", "5": "{example_val_1}"}}'
             )
 
-            response_text = provider.translate_image(mosaic_image_pil, prompt)
+            response_text = provider.translate_image(gambar_mosaik_pil, prompt)
 
-            text_json = bersihkan_json_dari_gemini(response_text)
-            result = json.loads(text_json)
+            teks_json = bersihkan_json_dari_gemini(response_text)
+            hasil = json.loads(teks_json)
 
-            return result
+            return hasil
 
         except ValueError as ve:
             if str(ve) == "API_KEY_ERROR":
@@ -138,89 +138,89 @@ def translate_mosaic(mosaic_image_pil, provider, target_language="Indonesian", m
                 return {}
                 
             if "429" in err_str or "too many requests" in err_str or "rate limit" in err_str:
-                wait_time = 5 * (2 ** attempt)
+                wait_time = 5 * (2 ** percobaan)
                 print(f"\n[!] Rate limit hit for {provider.provider_name}. Retrying in {wait_time}s...")
                 time.sleep(wait_time)
                 continue
 
-            print(f"\n[!] {provider.provider_name} error (Attempt {attempt + 1}/{max_retry}).")
+            print(f"\n[!] {provider.provider_name} error (Attempt {percobaan + 1}/{max_retry}).")
 
-            if attempt < max_retry - 1:
+            if percobaan < max_retry - 1:
                 time.sleep(10)
             else:
                 print(f"  [!] Failed to connect to {provider.provider_name}.")
                 return {}
 
 
-def shrink_crop_list_if_mosaic_too_tall(
-    crop_list,
-    max_mosaic_height=6000,
-    crop_spacing=10,
-    padding_top_bottom=20
+def perkecil_daftar_potongan_jika_mosaik_terlalu_tinggi(
+    daftar_potongan,
+    max_tinggi_mosaik=6000,
+    jarak_antar_potongan=10,
+    padding_atas_bawah=20
 ):
     """
     Shrinks panels before constructing the mosaic if it exceeds the max height limit.
-    Red IDs are drawn post-resize so they remain perfectly clear.
+    Red IDs are drawn post-resize so they remain perfectly clear
     """
-    if not crop_list:
-        return crop_list
+    if not daftar_potongan:
+        return daftar_potongan
 
-    crop_count = len(crop_list)
-    total_image_height = sum(p.height for _, p in crop_list)
-    total_space_height = crop_count * crop_spacing + padding_top_bottom
-    initial_mosaic_height = total_image_height + total_space_height
+    jumlah_potongan = len(daftar_potongan)
+    tinggi_gambar_total = sum(p.height for _, p in daftar_potongan)
+    tinggi_spasi_total = jumlah_potongan * jarak_antar_potongan + padding_atas_bawah
+    tinggi_mosaik_awal = tinggi_gambar_total + tinggi_spasi_total
 
-    if initial_mosaic_height <= max_mosaic_height:
-        return crop_list
+    if tinggi_mosaik_awal <= max_tinggi_mosaik:
+        return daftar_potongan
 
-    target_image_height = max(1, max_mosaic_height - total_space_height)
-    ratio = target_image_height / float(total_image_height)
+    tinggi_target_gambar = max(1, max_tinggi_mosaik - tinggi_spasi_total)
+    rasio = tinggi_target_gambar / float(tinggi_gambar_total)
 
-    new_list = []
+    daftar_baru = []
 
-    for num, crop in crop_list:
-        new_width = max(1, int(crop.width * ratio))
-        new_height = max(1, int(crop.height * ratio))
+    for nomor, pot in daftar_potongan:
+        lebar_baru = max(1, int(pot.width * rasio))
+        tinggi_baru = max(1, int(pot.height * rasio))
 
-        new_crop = crop.resize(
-            (new_width, new_height),
+        pot_baru = pot.resize(
+            (lebar_baru, tinggi_baru),
             Image.Resampling.LANCZOS
         )
 
-        new_list.append((num, new_crop))
+        daftar_baru.append((nomor, pot_baru))
 
-    return new_list
+    return daftar_baru
 
 
 
-def process_single_image(image_path, yolo_model, provider, target_language="Indonesian"):
-    """Processes a single manga page. Splits landscape images into two pages automatically."""
+def proses_satu_gambar(image_path, yolo_model, provider, target_language="Indonesian"):
+    """Processes a single manga page. Splits landscape images into two pages automatically~ ♪"""
     img = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         print("[!] Image file is corrupt or unreadable.")
         return None
         
-    img_height, img_width = img.shape[:2]
+    tinggi_img, lebar_img = img.shape[:2]
     
-    ratio = img_width / img_height
+    ratio = lebar_img / tinggi_img
     
-    # Auto-Split Landscape (two or more pages)
+    # Auto-Split Landscape (Dua atau lebih Halaman)
     if ratio > 1.2:
-        # Determine how many pages.
-        # Standard manga page aspect ratio is usually around 0.7 to 0.75
+        # Tentukan berapa halaman.
+        # Rasio lebar/tinggi halaman manga standar biasanya sekitar 0,7 hingga 0,75
         num_splits = max(2, round(ratio / 0.71))
         
         print(f"  [Auto-Split] Wide image detected (ratio {ratio:.2f}). Splitting into {num_splits} parts...")
         
-        split_width = img_width // num_splits
+        split_width = lebar_img // num_splits
         
-        # Manga is usually read from right to left, so the rightmost part is Page 1.
+        # Manga biasanya dibaca dari kanan ke kiri, jadi bagian paling kanan adalah Halaman 1.
         splits = []
         for i in range(num_splits):
-            # Calculate from right to left
-            x_end = img_width - (i * split_width)
+            # Hitung dari kanan ke kiri
+            x_end = lebar_img - (i * split_width)
             x_start = x_end - split_width
-            if i == num_splits - 1: # Last split (leftmost) takes the remainder
+            if i == num_splits - 1: # Pembagian terakhir (paling kiri) menghitung sisanya
                 x_start = 0
                 
             img_part = img[:, x_start:x_end]
@@ -228,19 +228,19 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
             cv2.imwrite(part_path, img_part)
             
             print(f"  Translating Part {i+1} (Right-to-Left)...")
-            res_path = _process_single_image_core(part_path, yolo_model, provider, target_language)
+            res_path = _proses_satu_gambar_core(part_path, yolo_model, provider, target_language)
             splits.append((res_path, part_path))
             
-        # Recombine
+        # Gabungkan Ulang
         valid_res = [res for res, _ in splits if res]
         if len(valid_res) == num_splits:
-            # Load all result images
+            # Muat semua hasil gambar
             img_results = [cv2.imdecode(np.fromfile(res, dtype=np.uint8), cv2.IMREAD_COLOR) for res in valid_res]
             
-            # Order is right to left. Reverse visual order from left to right for hconcat.
+            # Urutannya dari kanan ke kiri. Balikkan urutan visual dari kiri ke kanan untuk hconcat.
             img_results.reverse()
             
-            # Ensure heights are the same for merging.
+            # Memastikan ketinggiannya sama untuk penggabungan.
             target_h = max(img.shape[0] for img in img_results)
             for i in range(len(img_results)):
                 h, w = img_results[i].shape[:2]
@@ -253,7 +253,7 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
             
             cv2.imwrite(output_path, combined)
             
-            # Clean up split results
+            # Bersihkan hasil split
             for res_path, part_path in splits:
                 try: os.remove(res_path)
                 except: pass
@@ -262,11 +262,11 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
                 
             return output_path
             
-    # If not a landscape image, process as usual
-    return _process_single_image_core(image_path, yolo_model, provider, target_language)
+    # Kalau bukan gambar landscape proses aja kayak biasa
+    return _proses_satu_gambar_core(image_path, yolo_model, provider, target_language)
 
-def _process_single_image_core(image_path, yolo_model, provider, target_language="Indonesian"):
-    """Core processing function for a single manga page."""
+def _proses_satu_gambar_core(image_path, yolo_model, provider, target_language="Indonesian"):
+    """Core processing function for a single manga page~ ♪"""
 
     print(f"\nTranslating: {os.path.basename(image_path)}")
 
@@ -276,45 +276,45 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
         print("[!] Image file is corrupt or unreadable.")
         return None
 
-    main_image_pil = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
-    main_draw = ImageDraw.Draw(main_image_pil)
+    img_pil_utama = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    draw_utama = ImageDraw.Draw(img_pil_utama)
 
-    img_height, img_width = img.shape[:2]
+    tinggi_img, lebar_img = img.shape[:2]
 
-    prediction_stages = [
+    tahap_prediksi = [
         {"conf": 0.28, "iou": 0.45},
         {"conf": 0.18, "iou": 0.55},
         {"conf": 0.10, "iou": 0.65}
     ]
 
-    raw_boxes = []
+    kotak_mentah = []
 
-    for stage in prediction_stages:
+    for tahap in tahap_prediksi:
         with yolo_lock:
             temp_results = yolo_model.predict(
                 source=img,
-                conf=stage["conf"],
-                iou=stage["iou"],
+                conf=tahap["conf"],
+                iou=tahap["iou"],
                 verbose=False
             )
 
         for box in temp_results[0].boxes:
             x1, y1, x2, y2 = map(int, box.xyxy[0])
-            raw_boxes.append([x1, y1, x2, y2])
+            kotak_mentah.append([x1, y1, x2, y2])
 
-    filtered_boxes = buang_kotak_raksasa_palsu(raw_boxes)
-    filtered_boxes = gabung_kotak_tumpang_tindih(filtered_boxes)
-    filtered_boxes = buang_kotak_ngawur(filtered_boxes, img_width, img_height)
-    filtered_boxes = buang_kotak_sfx_dan_gambar(
+    kotak_matang = buang_kotak_raksasa_palsu(kotak_mentah)
+    kotak_matang = gabung_kotak_tumpang_tindih(kotak_matang)
+    kotak_matang = buang_kotak_ngawur(kotak_matang, lebar_img, tinggi_img)
+    kotak_matang = buang_kotak_sfx_dan_gambar(
         img=img,
-        boxes=filtered_boxes,
+        boxes=kotak_matang,
         image_name=image_path
     )
 
-    crop_list = []
-    coordinate_map = {}
+    daftar_potongan = []
+    koordinat_jejak = {}
 
-    for order, (x1, y1, x2, y2) in enumerate(filtered_boxes, start=1):
+    for urutan, (x1, y1, x2, y2) in enumerate(kotak_matang, start=1):
         box_w = max(1, x2 - x1)
         box_h = max(1, y2 - y1)
 
@@ -323,20 +323,20 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
 
         crop_x1, crop_y1, crop_x2, crop_y2 = buat_crop_lega_tapi_tidak_nyamber(
             [x1, y1, x2, y2],
-            filtered_boxes,
-            img_width,
-            img_height,
+            kotak_matang,
+            lebar_img,
+            tinggi_img,
             pad_x,
             pad_y
         )
 
-        crop = img[crop_y1:crop_y2, crop_x1:crop_x2].copy()
+        potongan = img[crop_y1:crop_y2, crop_x1:crop_x2].copy()
 
-        if crop.size == 0:
+        if potongan.size == 0:
             continue
 
-        crop = mask_luar_box_utama(
-            crop,
+        potongan = mask_luar_box_utama(
+            potongan,
             crop_x1,
             crop_y1,
             x1,
@@ -345,132 +345,132 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
             y2
         )
 
-        crop_pil = Image.fromarray(cv2.cvtColor(crop, cv2.COLOR_BGR2RGB))
+        potongan_pil = Image.fromarray(cv2.cvtColor(potongan, cv2.COLOR_BGR2RGB))
 
         if config.SKALA_POTONGAN_MOSAIK != 1:
-            new_size = (
-                max(1, int(crop_pil.width * config.SKALA_POTONGAN_MOSAIK)),
-                max(1, int(crop_pil.height * config.SKALA_POTONGAN_MOSAIK))
+            ukuran_baru = (
+                max(1, int(potongan_pil.width * config.SKALA_POTONGAN_MOSAIK)),
+                max(1, int(potongan_pil.height * config.SKALA_POTONGAN_MOSAIK))
             )
 
-            crop_pil = crop_pil.resize(
-                new_size,
+            potongan_pil = potongan_pil.resize(
+                ukuran_baru,
                 Image.Resampling.LANCZOS
             )
 
-        crop_list.append((str(order), crop_pil))
-        coordinate_map[str(order)] = (x1, y1, x2, y2)
+        daftar_potongan.append((str(urutan), potongan_pil))
+        koordinat_jejak[str(urutan)] = (x1, y1, x2, y2)
 
-    total_bubbles = len(crop_list)
+    total_balon = len(daftar_potongan)
 
-    if total_bubbles == 0:
+    if total_balon == 0:
         print("  No text bubbles found.")
 
         output_path = _make_output_path(image_path, target_language)
-        main_image_pil.save(output_path)
+        img_pil_utama.save(output_path)
 
         return output_path
 
-    print(f"  Found {total_bubbles} speech bubbles...")
+    print(f"  Found {total_balon} speech bubbles...")
 
-    left_number_margin = config.MARGIN_KIRI_NOMOR
-    right_margin = config.MARGIN_KANAN
-    crop_spacing = config.JARAK_ANTAR_POTONGAN
+    margin_kiri_nomor = config.MARGIN_KIRI_NOMOR
+    margin_kanan = config.MARGIN_KANAN
+    jarak_antar_potongan = config.JARAK_ANTAR_POTONGAN
 
-    crop_list = shrink_crop_list_if_mosaic_too_tall(
-        crop_list,
-        max_mosaic_height=config.MAX_TINGGI_MOSAIK,
-        crop_spacing=crop_spacing,
-        padding_top_bottom=20
+    daftar_potongan = perkecil_daftar_potongan_jika_mosaik_terlalu_tinggi(
+        daftar_potongan,
+        max_tinggi_mosaik=config.MAX_TINGGI_MOSAIK,
+        jarak_antar_potongan=jarak_antar_potongan,
+        padding_atas_bawah=20
     )
 
-    mosaic_width = max(
+    lebar_mosaik = max(
         config.LEBAR_MOSAIK_MIN,
-        max([p.width for _, p in crop_list]) + left_number_margin + right_margin
+        max([p.width for _, p in daftar_potongan]) + margin_kiri_nomor + margin_kanan
     )
 
-    mosaic_height = (
-        sum([p.height for _, p in crop_list])
-        + (total_bubbles * crop_spacing)
+    tinggi_mosaik = (
+        sum([p.height for _, p in daftar_potongan])
+        + (total_balon * jarak_antar_potongan)
         + 20
     )
 
-    mosaic_canvas = Image.new(
+    kanvas_mosaik = Image.new(
         "RGB",
-        (mosaic_width, mosaic_height),
+        (lebar_mosaik, tinggi_mosaik),
         color=(255, 255, 255)
     )
 
-    mosaic_draw = ImageDraw.Draw(mosaic_canvas)
+    draw_mosaik = ImageDraw.Draw(kanvas_mosaik)
 
     y_offset = 10
 
-    number_font = ImageFont.load_default()
+    font_nomor = ImageFont.load_default()
 
     try:
-        number_font = ImageFont.truetype(config.FONT_MANGA, 40)
+        font_nomor = ImageFont.truetype(config.FONT_MANGA, 40)
     except Exception:
         pass
 
-    for num, crop in crop_list:
-        mosaic_draw.text(
-            (5, y_offset + (crop.height // 2) - 20),
-            num,
+    for nomor, pot in daftar_potongan:
+        draw_mosaik.text(
+            (5, y_offset + (pot.height // 2) - 20),
+            nomor,
             fill=(255, 0, 0),
-            font=number_font
+            font=font_nomor
         )
 
-        mosaic_canvas.paste(crop, (left_number_margin, y_offset))
+        kanvas_mosaik.paste(pot, (margin_kiri_nomor, y_offset))
 
-        y_offset += crop.height + crop_spacing
+        y_offset += pot.height + jarak_antar_potongan
 
-    temp_mosaic_dir = os.path.join(config.ROOT_DIR, "cypy_cache")
-    os.makedirs(temp_mosaic_dir, exist_ok=True)
+    temp_mosaik_dir = os.path.join(config.ROOT_DIR, "cypy_cache")
+    os.makedirs(temp_mosaik_dir, exist_ok=True)
 
-    mosaic_path = os.path.join(
-        temp_mosaic_dir,
+    mosaik_path = os.path.join(
+        temp_mosaik_dir,
         f"mosaic_preview_{os.path.basename(image_path)}"
     )
 
-    mosaic_canvas.save(mosaic_path)
+    kanvas_mosaik.save(mosaik_path)
 
     print(f"  Translating with {provider.provider_name} ({provider.model_name})...")
 
-    translation_result = translate_mosaic(mosaic_canvas, provider=provider, target_language=target_language)
+    hasil_terjemahan = terjemahkan_mosaik(kanvas_mosaik, provider=provider, target_language=target_language)
 
-    if not translation_result:
+    if not hasil_terjemahan:
         print("  [!] Translation failed.")
         return None
 
     if config.MANUAL_TRANSLATION_OVERRIDE:
-        translation_result.update(config.MANUAL_TRANSLATION_OVERRIDE)
+        hasil_terjemahan.update(config.MANUAL_TRANSLATION_OVERRIDE)
 
-    for num, text in translation_result.items():
-        if num in coordinate_map:
-            if text.upper() != "SKIP" and text.strip() != "":
-                x1, y1, x2, y2 = coordinate_map[num]
+    for nomor, teks in hasil_terjemahan.items():
+        if nomor in koordinat_jejak:
+            if teks.upper() != "SKIP" and teks.strip() != "":
+                x1, y1, x2, y2 = koordinat_jejak[nomor]
 
                 w = max(1, x2 - x1)
                 h = max(1, y2 - y1)
-                ratio = w / float(h)
-                area_ratio = (w * h) / float(max(1, img_width * img_height))
+                rasio = w / float(h)
+                luas_ratio = (w * h) / float(max(1, lebar_img * tinggi_img))
 
-                if ratio >= 3.2 and w >= img_width * 0.35:
+                if rasio >= 3.2 and w >= lebar_img * 0.35:
                     continue
 
-                if area_ratio >= 0.035 and ratio >= 2.8:
+                if luas_ratio >= 0.035 and rasio >= 2.8:
                     continue
 
-                suspicious_flat_box = (
-                    ratio >= config.RASIO_BOX_GEPENG
-                    and w >= img_width * config.LEBAR_BOX_GEPENG_RATIO
-                    and h <= img_height * config.TINGGI_BOX_GEPENG_RATIO
+                box_gepeng_mencurigakan = (
+                    rasio >= config.RASIO_BOX_GEPENG
+                    and w >= lebar_img * config.LEBAR_BOX_GEPENG_RATIO
+                    and h <= tinggi_img * config.TINGGI_BOX_GEPENG_RATIO
                 )
 
-                if config.PAKAI_PATCH_UNTUK_BOX_GEPENG and suspicious_flat_box:
+                if config.PAKAI_PATCH_UNTUK_BOX_GEPENG and box_gepeng_mencurigakan:
                     tulis_teks_di_balon(
-                        main_draw,
-                        text,
+                        draw_utama,
+                        teks,
                         x1,
                         y1,
                         x2,
@@ -485,7 +485,7 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
 
                     overlay = Image.new(
                         "RGBA",
-                        main_image_pil.size,
+                        img_pil_utama.size,
                         (255, 255, 255, 0)
                     )
 
@@ -503,11 +503,11 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
 
                     overlay_blurred = overlay.filter(ImageFilter.GaussianBlur(radius=8))
 
-                    main_image_pil.paste(overlay_blurred, (0, 0), overlay_blurred)
+                    img_pil_utama.paste(overlay_blurred, (0, 0), overlay_blurred)
 
                     tulis_teks_di_balon(
-                        main_draw,
-                        text,
+                        draw_utama,
+                        teks,
                         x1,
                         y1,
                         x2,
@@ -518,12 +518,12 @@ def _process_single_image_core(image_path, yolo_model, provider, target_language
 
     output_path = _make_output_path(image_path, target_language)
 
-    main_image_pil.save(output_path)
+    img_pil_utama.save(output_path)
 
     return output_path
 
 
-def process_folder(folder_path, yolo_model, provider, target_language="Indonesian"):
+def proses_folder(folder_path, yolo_model, provider, target_language="Indonesian"):
     """Processes all supported images in a folder in parallel."""
     supported = config.SUPPORTED_IMAGE_EXTENSIONS
     files = sorted([
@@ -538,9 +538,8 @@ def process_folder(folder_path, yolo_model, provider, target_language="Indonesia
     total = len(files)
     print(f"\n[Batch] Found {total} images in folder.")
 
-    success = 0
-    failed = 0
-    failed_files = []
+    sukses = 0
+    gagal = 0
     
     def process_file(filename, idx):
         file_path = os.path.join(folder_path, filename)
@@ -550,35 +549,24 @@ def process_folder(folder_path, yolo_model, provider, target_language="Indonesia
         
         if os.path.exists(expected_output):
             print(f"\n[{idx}/{total}] Skipping {filename} (Already translated).")
-            return True, filename
+            return True
 
         print(f"\n[{idx}/{total}] Processing {filename}...")
-        result = process_single_image(file_path, yolo_model, provider=provider, target_language=target_language)
-        return bool(result), filename
+        hasil = proses_satu_gambar(file_path, yolo_model, provider=provider, target_language=target_language)
+        return bool(hasil)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_file, f, idx): f for idx, f in enumerate(files, start=1)}
         for future in concurrent.futures.as_completed(futures):
-            try:
-                result, filename = future.result()
-                if result:
-                    success += 1
-                else:
-                    failed += 1
-                    failed_files.append(filename)
-            except Exception as e:
-                failed += 1
-                failed_files.append(futures[future])
+            if future.result():
+                sukses += 1
+            else:
+                gagal += 1
 
-    print(f"\n[Batch] Completed! Success: {success}, Failed: {failed}, Total: {total}")
-    
-    if failed_files:
-        print(f"\n[Batch] Failed files:")
-        for f in failed_files:
-            print(f"  - {f}")
+    print(f"\n[Batch] Completed! Success: {sukses}, Failed: {gagal}, Total: {total}")
 
 
-def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
+def mulai_ritual_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
     """Processes a PDF page-by-page concurrently, and binds them back together."""
     print(f"\nProcessing PDF: {os.path.basename(pdf_path)}")
 
@@ -604,30 +592,18 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
         expected_output = _make_output_path(img_path, target_language)
         if os.path.exists(expected_output):
             print(f"\n[PDF {page_num + 1}/{total_pages}] Skipping (Already translated).")
-            return page_num, expected_output, True
+            return page_num, expected_output
             
         print(f"\n[PDF {page_num + 1}/{total_pages}] Translating...")
-        result_path = process_single_image(img_path, yolo_model, provider=provider, target_language=target_language)
-        return page_num, result_path, bool(result_path)
+        hasil_path = proses_satu_gambar(img_path, yolo_model, provider=provider, target_language=target_language)
+        return page_num, hasil_path
 
     print("Translating pages...")
-    success = 0
-    failed = 0
-    failed_pages = []
-    
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = [executor.submit(process_pdf_page, p_num, p_path) for p_num, p_path in page_paths]
         for future in concurrent.futures.as_completed(futures):
-            try:
-                p_num, res_path, is_success = future.result()
-                translated_images_paths[p_num] = res_path
-                if is_success:
-                    success += 1
-                else:
-                    failed += 1
-                    failed_pages.append(f"Page {p_num + 1}")
-            except Exception as e:
-                failed += 1
+            p_num, res_path = future.result()
+            translated_images_paths[p_num] = res_path
 
     valid_paths = [p for p in translated_images_paths if p]
     if valid_paths:
@@ -636,13 +612,6 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
         output_pdf_path = _make_output_path(pdf_path, target_language, output_ext=".pdf")
         images[0].save(output_pdf_path, save_all=True, append_images=images[1:])
         print(f"Done! Saved at: {output_pdf_path}")
-    
-    print(f"\n[PDF] Completed! Success: {success}, Failed: {failed}, Total: {total_pages}")
-    
-    if failed_pages:
-        print(f"\n[PDF] Failed pages:")
-        for p in failed_pages:
-            print(f"  - {p}")
 
     # Cleanup
     shutil.rmtree(temp_dir, ignore_errors=True)
@@ -658,7 +627,7 @@ def setup_rarfile():
     
     os_name = platform.system()
     
-    if os_name == "Windows":
+    if os_name == "Windows":  # Windows
         common_paths = [
             r"C:\Program Files\WinRAR\UnRAR.exe",
             r"C:\Program Files\WinRAR\WinRAR.exe",
@@ -667,12 +636,12 @@ def setup_rarfile():
             r"C:\Program Files\7-Zip\7z.exe",
             r"C:\Program Files (x86)\7-Zip\7z.exe",
         ]
-    elif os_name == "Darwin":
+    elif os_name == "Darwin":  # macOS
         common_paths = [
             "/usr/local/bin/unrar",
             "/opt/homebrew/bin/unrar"
         ]
-    else:
+    else:  # Linux
         common_paths = [
             "/usr/bin/unrar",
             "/usr/local/bin/unrar"
@@ -684,7 +653,7 @@ def setup_rarfile():
             return True
     return False
 
-def process_archive(archive_path, yolo_model, provider, target_language="Indonesian"):
+def mulai_ritual_archive(archive_path, yolo_model, provider, target_language="Indonesian"):
     """Processes CBZ/ZIP/CBR/RAR archives."""
     print(f"\nProcessing Archive: {os.path.basename(archive_path)}")
     
@@ -732,33 +701,21 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
     print(f"Found {total} images. Starting translation...")
     
     translated_paths = []
-    failed_files = []
-    success = 0
-    failed = 0
 
     def process_arch_file(img_path, idx):
         expected_output = _make_output_path(img_path, target_language)
         if os.path.exists(expected_output):
             print(f"\n[{idx}/{total}] Skipping (Already translated).")
-            return expected_output, img_path, True
+            return expected_output
             
         print(f"\n[{idx}/{total}] Translating {os.path.basename(img_path)}...")
-        res = process_single_image(img_path, yolo_model, provider=provider, target_language=target_language)
-        return (res if res else img_path), img_path, bool(res)
+        res = proses_satu_gambar(img_path, yolo_model, provider=provider, target_language=target_language)
+        return res if res else img_path # fallback to original if failed
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_arch_file, p, i): i for i, p in enumerate(image_paths, start=1)}
         for future in concurrent.futures.as_completed(futures):
-            try:
-                result, img_path, is_success = future.result()
-                translated_paths.append(result)
-                if is_success:
-                    success += 1
-                else:
-                    failed += 1
-                    failed_files.append(os.path.basename(img_path))
-            except Exception as e:
-                failed += 1
+            translated_paths.append(future.result())
             
     # Repack into PDF
     valid_paths = [p for p in translated_paths if p and os.path.exists(p)]
@@ -768,12 +725,6 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
         images = [Image.open(img).convert("RGB") for img in valid_paths]
         images[0].save(output_pdf_path, save_all=True, append_images=images[1:])
         print(f"Done! Saved at: {output_pdf_path}")
-    
-    print(f"\n[Archive] Completed! Success: {success}, Failed: {failed}, Total: {total}")
-    
-    if failed_files:
-        print(f"\n[Archive] Failed files:")
-        for f in failed_files:
-            print(f"  - {f}")
                 
     shutil.rmtree(temp_dir, ignore_errors=True)
+

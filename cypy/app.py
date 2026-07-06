@@ -12,7 +12,7 @@ if sys.platform.startswith('win'):
 from cypy.core.yolo_onnx import YOLOONNX as YOLO
 from cypy.core.config import get_provider_config
 import cypy.core.config as config
-from cypy.core.translator import process_single_image, process_pdf, process_folder, process_archive
+from cypy.core.translator import proses_satu_gambar, mulai_ritual_pdf, proses_folder, mulai_ritual_archive
 from cypy.core.providers import create_provider
 from cypy.core.utils import create_shortcut_if_first_run
 from cypy.core import ui
@@ -477,7 +477,7 @@ def main():
             # Folder batch processing
             if os.path.isdir(input_file):
                 start_time = time.time()
-                process_folder(input_file, yolo_model, provider=provider, target_language=target_language)
+                proses_folder(input_file, yolo_model, provider=provider, target_language=target_language)
                 elapsed = time.time() - start_time
                 print(f"\n[Timer] Total time: {elapsed:.1f}s")
                 continue
@@ -486,13 +486,13 @@ def main():
                 start_time = time.time()
 
                 if input_file.lower().endswith(".pdf"):
-                    process_pdf(input_file, yolo_model, provider=provider, target_language=target_language)
+                    mulai_ritual_pdf(input_file, yolo_model, provider=provider, target_language=target_language)
 
                 elif input_file.lower().endswith(('.zip', '.cbz', '.rar', '.cbr')):
-                    process_archive(input_file, yolo_model, provider=provider, target_language=target_language)
+                    mulai_ritual_archive(input_file, yolo_model, provider=provider, target_language=target_language)
 
                 elif input_file.lower().endswith(config.SUPPORTED_IMAGE_EXTENSIONS):
-                    hasil = process_single_image(input_file, yolo_model, provider=provider, target_language=target_language)
+                    hasil = proses_satu_gambar(input_file, yolo_model, provider=provider, target_language=target_language)
 
                     if hasil:
                         print(f"Done! Saved at: {hasil}")
