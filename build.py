@@ -203,6 +203,8 @@ def run_build():
                 except Exception as e:
                     print(f"[Build] Warning: Failed to clean temporary assets: {e}")
 
+    package_release(ROOT_DIR)
+
 def package_release(project_root: Union[str, Path]):
     project_root = Path(project_root).absolute()
     RELEASES_DIR.mkdir(parents=True, exist_ok=True)
