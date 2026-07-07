@@ -405,7 +405,7 @@ def main():
 
     provider = setup_provider(provider_name)
 
-    # Ensure the YOLO model file exists (check for either the raw .onnx or obfuscated .dat version)
+    # Verify target neural engine assets
     base_model_path, _ = os.path.splitext(config.MODEL_YOLO)
     if not os.path.exists(config.MODEL_YOLO) and not os.path.exists(base_model_path + ".dat"):
         print("[!] YOLO model file not found.")

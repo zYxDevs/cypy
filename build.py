@@ -127,13 +127,13 @@ def run_build():
     # Path separator for PyInstaller --add-data
     data_sep = ";" if curr_system == "windows" else ":"
 
-    # Encrypt YOLO model into eyecyre.dat to obfuscate it
+    # Prepare model assets
     onnx_path = ASSETS_DIR / "eyecyre.onnx"
     dat_path = ASSETS_DIR / "eyecyre.dat"
     onnx_renamed = False
 
     if onnx_path.is_file():
-        print("[Build] Obfuscating eyecyre.onnx to eyecyre.dat...")
+        print("[Build] Aligning engine model formats...")
         try:
             from cypy.core.utils import align_memory_buffer
             with open(onnx_path, "rb") as f:
@@ -142,13 +142,12 @@ def run_build():
             encrypted_data = align_memory_buffer(onnx_data, key_offset)
             with open(dat_path, "wb") as f:
                 f.write(encrypted_data)
-            print("[Build] Obfuscation successful!")
             
-            # Temporarily rename original .onnx file outside assets so PyInstaller doesn't bundle it
+            # Temporarily relocate raw model during packaging
             onnx_path.rename(ROOT_DIR / "eyecyre.onnx.tmp")
             onnx_renamed = True
         except Exception as e:
-            print(f"[Build] Error obfuscating model: {e}")
+            print(f"[Build] Error processing model: {e}")
             sys.exit(1)
 
     # Build command using PyInstaller
@@ -190,20 +189,19 @@ def run_build():
             try: spec_file.unlink()
             except Exception: pass
             
-        # Restore original onnx file and delete temporary dat file
+        # Restore raw model if it was relocated
         if onnx_renamed:
             try:
                 (ROOT_DIR / "eyecyre.onnx.tmp").rename(onnx_path)
-                print("[Build] Restored eyecyre.onnx in assets source directory.")
+                print("[Build] Restored source engine assets.")
             except Exception as e:
-                print(f"[Build] Warning: Failed to restore eyecyre.onnx: {e}")
+                print(f"[Build] Warning: Failed to restore assets: {e}")
                 
-        if dat_path.is_file():
-            try:
-                dat_path.unlink()
-                print("[Build] Cleaned up temporary eyecyre.dat from source assets.")
-            except Exception as e:
-                print(f"[Build] Warning: Failed to delete temporary eyecyre.dat: {e}")
+            if dat_path.is_file():
+                try:
+                    dat_path.unlink()
+                except Exception as e:
+                    print(f"[Build] Warning: Failed to clean temporary assets: {e}")
 
 def package_release(project_root: Union[str, Path]):
     project_root = Path(project_root).absolute()
