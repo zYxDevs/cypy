@@ -19,7 +19,7 @@
 ## Features
 
 - **Multi-Language Support:** Translate to English, Indonesian, Japanese (with native vertical *Tategaki* text!), Mandarin (简体中文), Spanish, Portuguese, Javanese, and **Custom Languages** (supports Thai, Arabic, Cyrillic, etc. with automatic full variable font downloading!).
-- **Multi-Provider AI:** Choose between **Google Gemini**, **OpenAI** (GPT-5.4), **Zen** (free, no key needed), **OpenRouter** (100+ models), or **Custom** (any OpenAI-compatible API) directly from the CLI.
+- **Multi-Provider AI:** Choose between **Google Gemini**, **OpenAI** (GPT-5.4), **Zen** (free, no key needed), **OpenCode Go** (high-performance), **OpenRouter** (100+ models), or **Custom** (any OpenAI-compatible API) directly from the CLI.
 - **Interactive Commands:** Change the target language (`lang`), switch API providers (`provider`), change models (`model`), or check current settings (`status`) on the fly inside the loop.
 - **Zero-Setup Startup:** Prompts for the API key in the CLI and generates the `.env` file automatically if missing. Zen works out of the box — no API key required.
 - **Custom API Support:** Bring your own OpenAI-compatible endpoint with configurable base URL, API key, and model.
@@ -96,6 +96,10 @@ MODEL_OPENAI=gpt-5.4-mini
 # Zen (https://opencode.ai) — no API key required
 ZEN_API_KEY=
 MODEL_ZEN=minimax-m3-free
+
+# OpenCode Go (https://opencode.ai) — API key required
+OPENCODEGO_API_KEY=your_opencode_go_api_key_here
+MODEL_OPENCODEGO=mimo-v2.5
 
 # OpenRouter Config (Optional)
 OPENROUTER_API_KEY=your_openrouter_api_key_here
