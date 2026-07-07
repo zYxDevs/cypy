@@ -166,6 +166,8 @@ def run_build():
         "--exclude-module=IPython",
         "--exclude-module=torch",
         "--exclude-module=ultralytics",
+        "--exclude-module=lxml",
+        "--exclude-module=cryptography",
     ]
 
     if is_favicon_exist:
