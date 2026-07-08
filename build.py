@@ -328,6 +328,14 @@ def package_release(project_root: Union[str, Path]):
     if is_onefile:
         shutil.copy2(pyinstaller_output, app_folder_path / pyinstaller_output.name)
         print(f"[Build] Copied compiled executable {pyinstaller_output.name} into release folder.")
+    else:
+        for item in os.listdir(pyinstaller_output):
+            s = pyinstaller_output / item
+            d = app_folder_path / item
+            if s.is_dir():
+                shutil.copytree(s, d, symlinks=True)
+            else:
+                shutil.copy2(s, d, follow_symlinks=False)
         print("[Build] Copied all compiled files and folders into release folder.")
 
     # Create the secondary CLI entry point copy
