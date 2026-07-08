@@ -84,7 +84,7 @@ jobs:
 
       - name: Build APK with Buildozer Docker
         run: |
-          docker run --rm \
+          docker run --rm --network host \
             -v ${{ github.workspace }}:/home/user/hostcwd \
             -v ${{ github.workspace }}/.buildozer_global:/home/user/.buildozer \
             -v ${{ github.workspace }}/.buildozer:/home/user/hostcwd/.buildozer \
