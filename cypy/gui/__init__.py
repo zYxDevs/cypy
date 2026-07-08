@@ -27,6 +27,22 @@ else:
             fn_italic=os.path.join(font_dir, 'couri.ttf'),
             fn_bolditalic=os.path.join(font_dir, 'courbi.ttf')
         )
+    else:
+        # Android / Linux fallbacks to prevent crashes
+        android_mono = "/system/fonts/DroidSansMono.ttf"
+        android_roboto = "/system/fonts/Roboto-Regular.ttf"
+        linux_mono = "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf"
+        
+        fallback_font = None
+        if os.path.exists(android_mono):
+            fallback_font = android_mono
+        elif os.path.exists(android_roboto):
+            fallback_font = android_roboto
+        elif os.path.exists(linux_mono):
+            fallback_font = linux_mono
+            
+        if fallback_font:
+            LabelBase.register(name='Consolas', fn_regular=fallback_font)
 
 # Tentukan path dinamis untuk runtime reguler maupun terkompilasi
 if getattr(sys, 'frozen', False):
