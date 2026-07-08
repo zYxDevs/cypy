@@ -33,7 +33,14 @@ jobs:
           pip install .
 
       - name: Run Build Script
-        run: python build.py
+        run: |
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            sudo apt-get update && sudo apt-get install -y xvfb libegl1-mesa libgl1-mesa-glx
+            xvfb-run python build.py
+          else
+            python build.py
+          fi
+        shell: bash
 
       - name: Compile Inno Setup Installer (Windows Only)
         if: matrix.os == 'windows-latest'
@@ -56,10 +63,12 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.10'
+      - name: Create buildozer directories
+        run: |
+          mkdir -p .buildozer
+          mkdir -p .buildozer_global
+          chmod -R 777 .buildozer
+          chmod -R 777 .buildozer_global
 
       - name: Get Date
         id: get-date
@@ -70,15 +79,16 @@ jobs:
       - name: Cache Buildozer global directory
         uses: actions/cache@v4
         with:
-          path: .buildozer
-          key: ${{ runner.os }}-buildozer-${{ steps.get-date.outputs.date }}
+          path: .buildozer_global
+          key: ${{ runner.os }}-buildozer-global-${{ steps.get-date.outputs.date }}
 
-      - name: Buildozer Action
-        uses: ArtemSBulgakov/buildozer-action@v1
-        id: buildozer
-        with:
-          workdir: .
-          buildozer_version: master
+      - name: Build APK with Buildozer Docker
+        run: |
+          docker run --rm \
+            -v ${{ github.workspace }}:/home/user/hostcwd \
+            -v ${{ github.workspace }}/.buildozer_global:/home/user/.buildozer \
+            -v ${{ github.workspace }}/.buildozer:/home/user/hostcwd/.buildozer \
+            kivy/buildozer android debug
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
