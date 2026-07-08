@@ -13,7 +13,6 @@ dependencies = [
     "PyMuPDF",
     "numpy",
     "Pillow",
-    "onnxruntime",
     "google-genai",
     "python-dotenv",
     "requests",

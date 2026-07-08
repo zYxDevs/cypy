@@ -20,7 +20,7 @@ version = 0.2508
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
-requirements = python3,kivy==2.3.1,numpy,pillow,opencv-python-headless,onnxruntime
+requirements = python3,kivy==2.3.1,numpy,pillow,opencv-python-headless
 
 # (str) Icon of the application
 icon.filename = %(source.dir)s/assets/favicon.png
