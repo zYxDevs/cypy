@@ -35,7 +35,7 @@ android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_
 android.api = 33
 
 # (int) Minimum API your APK will support.
-android.minapi = 21
+android.minapi = 24
 
 # (bool) Grant storage permissions on android>=6.0
 android.grant_scopes = True
