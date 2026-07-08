@@ -63,32 +63,10 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Create buildozer directories
-        run: |
-          mkdir -p .buildozer
-          mkdir -p .buildozer_global
-          chmod -R 777 .buildozer
-          chmod -R 777 .buildozer_global
-
-      - name: Get Date
-        id: get-date
-        run: |
-          echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
-        shell: bash
-
-      - name: Cache Buildozer global directory
-        uses: actions/cache@v4
+      - name: Build APK with Buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
         with:
-          path: .buildozer_global
-          key: ${{ runner.os }}-buildozer-global-${{ steps.get-date.outputs.date }}
-
-      - name: Build APK with Buildozer Docker
-        run: |
-          docker run --rm --network host \
-            -v ${{ github.workspace }}:/home/user/hostcwd \
-            -v ${{ github.workspace }}/.buildozer_global:/home/user/.buildozer \
-            -v ${{ github.workspace }}/.buildozer:/home/user/hostcwd/.buildozer \
-            kivy/buildozer android debug
+          command: android debug
 
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
