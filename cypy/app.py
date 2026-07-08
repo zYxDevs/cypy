@@ -386,6 +386,11 @@ def tampilkan_status(provider, target_language):
 
 
 def main():
+    if "--gui" in sys.argv:
+        from cypy.gui import main as gui_main
+        gui_main()
+        return
+
     # Automatically create desktop shortcut on first run (Windows only)
     create_shortcut_if_first_run()
 

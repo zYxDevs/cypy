@@ -1,0 +1,595 @@
+<SpinnerOption>:
+    background_normal: ''
+    background_down: ''
+    background_color: (0.13, 0.13, 0.13, 1) if self.state == 'normal' else (0.86, 0.15, 0.47, 1)
+    color: 1, 1, 1, 1
+    font_name: 'Consolas'
+    font_size: '10sp'
+    height: '28dp'
+    size_hint_y: None
+    canvas.after:
+        Color:
+            rgba: 0.22, 0.22, 0.22, 1
+        Line:
+            width: 1.0
+            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+<InfoPopup>:
+    title: 'CYPY - Info & Support'
+    title_font: 'Consolas'
+    title_size: '12sp'
+    size_hint: (None, None)
+    size: ('320dp', '320dp')
+    auto_dismiss: True
+    background: ''
+    background_color: 0.08, 0.08, 0.08, 0.95
+    separator_color: 0.86, 0.15, 0.47, 1
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: [15, 12]
+        spacing: 12
+
+        Label:
+            text: 'CYPY Manga Translator'
+            font_name: 'Consolas'
+            font_size: '13sp'
+            bold: True
+            color: 0.86, 0.15, 0.47, 1
+            size_hint_y: None
+            height: '18dp'
+
+        Label:
+            text: 'Version ' + app.app_version + '\nDeveloped by indravoyager\nContributors: cyrene, SayMaven, mitsuki31,\nAlisa-Mikhailovna, mbayue'
+            font_name: 'Consolas'
+            font_size: '10sp'
+            color: 0.7, 0.7, 0.7, 1
+            halign: 'center'
+            valign: 'middle'
+            size_hint_y: None
+            height: '60dp'
+
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: '42dp'
+            spacing: 2
+            Label:
+                text: 'GitHub Repository:'
+                font_name: 'Consolas'
+                font_size: '8sp'
+                color: 0.5, 0.5, 0.5, 1
+                halign: 'center'
+                size_hint_y: None
+                height: '12dp'
+            Button:
+                text: 'github.com/indravoyager/cypy'
+                font_name: 'Consolas'
+                font_size: '9sp'
+                bold: True
+                color: 0.06, 0.73, 0.51, 1
+                background_normal: ''
+                background_color: 0.13, 0.13, 0.13, 1
+                size_hint_y: None
+                height: '26dp'
+                on_release: app.open_url('https://github.com/indravoyager/cypy')
+                canvas.after:
+                    Color:
+                        rgba: 0.22, 0.22, 0.22, 1
+                    Line:
+                        width: 1.0
+                        rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: '42dp'
+            spacing: 2
+            Label:
+                text: 'Support the Developer:'
+                font_name: 'Consolas'
+                font_size: '8sp'
+                color: 0.5, 0.5, 0.5, 1
+                halign: 'center'
+                size_hint_y: None
+                height: '12dp'
+            Button:
+                text: 'trakteer.id/indravoyager'
+                font_name: 'Consolas'
+                font_size: '9sp'
+                bold: True
+                color: 0.9, 0.6, 0.2, 1
+                background_normal: ''
+                background_color: 0.13, 0.13, 0.13, 1
+                size_hint_y: None
+                height: '26dp'
+                on_release: app.open_url('https://trakteer.id/indravoyager')
+                canvas.after:
+                    Color:
+                        rgba: 0.22, 0.22, 0.22, 1
+                    Line:
+                        width: 1.0
+                        rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+        Widget:
+            size_hint_y: 1
+
+        Button:
+            text: 'CLOSE'
+            font_name: 'Consolas'
+            font_size: '10sp'
+            bold: True
+            size_hint_y: None
+            height: '30dp'
+            background_normal: ''
+            background_color: 0.2, 0.2, 0.2, 1
+            color: 1, 1, 1, 1
+            on_release: root.dismiss()
+
+BoxLayout:
+    orientation: 'vertical'
+    canvas.before:
+        Color:
+            rgba: 0.0, 0.0, 0.0, 1 # Pitch black background (#000000)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    # --- Header Bar ---
+    BoxLayout:
+        size_hint_y: None
+        height: '45dp'
+        padding: [15, 0]
+        spacing: 10
+        canvas.before:
+            Color:
+                rgba: 0.07, 0.07, 0.07, 1 # Dark grey header (#121212)
+            Rectangle:
+                pos: self.pos
+                size: self.size
+            Color:
+                rgba: 0.15, 0.15, 0.15, 1 # Border (#262626)
+            Line:
+                points: [self.x, self.y + 0.5, self.x + self.width, self.y + 0.5] # Bottom border (sharp)
+                width: 1.0
+
+        Label:
+            text: 'CYPY MANGA TRANSLATOR  [color=888888]' + app.app_version + '[/color]'
+            markup: True
+            font_name: 'Consolas'
+            font_size: '13sp'
+            bold: True
+            color: 1, 1, 1, 1
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+
+        Label:
+            id: status_label
+            text: 'Loading YOLO...'
+            font_name: 'Consolas'
+            font_size: '11sp'
+            bold: True
+            color: 0.9, 0.6, 0.2, 1 # Orange color for loading
+            size_hint_x: None
+            width: '100dp'
+            halign: 'right'
+            valign: 'middle'
+            text_size: self.size
+
+        Button:
+            text: '...'
+            font_name: 'Consolas'
+            font_size: '12sp'
+            bold: True
+            size_hint: (None, None)
+            size: ('26dp', '26dp')
+            pos_hint: {'center_y': 0.5}
+            background_normal: ''
+            background_color: 0.13, 0.13, 0.13, 1
+            color: 0.7, 0.7, 0.7, 1
+            on_release: app.show_info_popup()
+            canvas.after:
+                Color:
+                    rgba: 0.22, 0.22, 0.22, 1
+                Line:
+                    width: 1.0
+                    rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+
+    # --- Main Scrollable Panel ---
+    ScrollView:
+        do_scroll_x: False
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            padding: 10
+            spacing: 10
+
+            # Card 1: Input File/Folder Selection
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                padding: 10
+                spacing: 8
+                canvas.before:
+                    Color:
+                        rgba: 0.07, 0.07, 0.07, 1 # Card dark grey (#121212)
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                    Color:
+                        rgba: 0.15, 0.15, 0.15, 1 # Card border (#262626)
+                    Line:
+                        width: 1.0
+                        rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                Label:
+                    text: 'SOURCE FILE OR FOLDER'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint_y: None
+                    height: '16dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                BoxLayout:
+                    size_hint_y: None
+                    height: '28dp'
+                    spacing: 8
+
+                    TextInput:
+                        id: path_input
+                        text: ''
+                        hint_text: 'Select file/folder...'
+                        multiline: False
+                        readonly: True
+                        font_name: 'Consolas'
+                        font_size: '10sp'
+                        background_normal: ''
+                        background_color: 0.1, 0.1, 0.1, 1 # Lighter input background (#1a1a1a)
+                        foreground_color: 1, 1, 1, 1
+                        padding: [6, (self.height - self.line_height) / 2]
+                        size_hint_x: 0.54
+                        canvas.after:
+                            Color:
+                                rgba: 0.22, 0.22, 0.22, 1 # Input border (#383838)
+                            Line:
+                                width: 1.0
+                                rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                    Button:
+                        text: 'FILE'
+                        background_normal: ''
+                        background_color: 0.13, 0.13, 0.13, 1 # Dark grey button (#222222)
+                        color: 1, 1, 1, 1
+                        font_name: 'Consolas'
+                        font_size: '9sp'
+                        bold: True
+                        size_hint_x: 0.23
+                        on_release: app.open_file_selector('file')
+                        canvas.after:
+                            Color:
+                                rgba: 0.22, 0.22, 0.22, 1
+                            Line:
+                                width: 1.0
+                                rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                    Button:
+                        text: 'FOLDER'
+                        background_normal: ''
+                        background_color: 0.13, 0.13, 0.13, 1 # Dark grey button (#222222)
+                        color: 1, 1, 1, 1
+                        font_name: 'Consolas'
+                        font_size: '9sp'
+                        bold: True
+                        size_hint_x: 0.23
+                        on_release: app.open_file_selector('folder')
+                        canvas.after:
+                            Color:
+                                rgba: 0.22, 0.22, 0.22, 1
+                            Line:
+                                width: 1.0
+                                rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+
+            # Card 2: Configuration & Language
+            GridLayout:
+                cols: 2
+                size_hint_y: None
+                height: self.minimum_height
+                padding: 10
+                spacing: 8
+                canvas.before:
+                    Color:
+                        rgba: 0.07, 0.07, 0.07, 1 # Card dark grey (#121212)
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                    Color:
+                        rgba: 0.15, 0.15, 0.15, 1 # Card border (#262626)
+                    Line:
+                        width: 1.0
+                        rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                # Row 1: Target Language
+                Label:
+                    text: 'Target Language'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                Spinner:
+                    id: lang_spinner
+                    text: 'Indonesian'
+                    values: ['English', 'Indonesian', 'Japanese', 'Mandarin', 'Spanish', 'Portuguese', 'Javanese', 'Korean', 'Russian', 'Thai']
+                    background_normal: ''
+                    background_color: 0.13, 0.13, 0.13, 1 # Dark grey spinner (#222222)
+                    color: 1, 1, 1, 1
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_lang_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                # Row 2: AI Provider
+                Label:
+                    text: 'AI Provider'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                Spinner:
+                    id: provider_spinner
+                    text: 'Google Gemini'
+                    values: ['Google Gemini', 'OpenAI', 'Zen (opencode.ai)', 'OpenCode Go', 'OpenRouter', 'Custom']
+                    background_normal: ''
+                    background_color: 0.13, 0.13, 0.13, 1 # Dark grey spinner (#222222)
+                    color: 1, 1, 1, 1
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_provider_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                # Row 3: API Key
+                Label:
+                    text: 'API Key'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                TextInput:
+                    id: api_key_input
+                    text: ''
+                    hint_text: 'Paste API key here...'
+                    password: True
+                    multiline: False
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    background_normal: ''
+                    background_color: 0.1, 0.1, 0.1, 1 # Lighter input background (#1a1a1a)
+                    foreground_color: 1, 1, 1, 1
+                    padding: [6, (self.height - self.line_height) / 2]
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_api_key_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                # Row 4: Model Name
+                Label:
+                    text: 'Model Name'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                TextInput:
+                    id: model_input
+                    text: ''
+                    hint_text: 'e.g. gemini-3.1-flash-lite'
+                    multiline: False
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    background_normal: ''
+                    background_color: 0.1, 0.1, 0.1, 1 # Lighter input background (#1a1a1a)
+                    foreground_color: 1, 1, 1, 1
+                    padding: [6, (self.height - self.line_height) / 2]
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_model_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                # Row 5: Custom Base URL
+                Label:
+                    id: base_url_label
+                    text: 'Base URL'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    disabled: True
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                TextInput:
+                    id: base_url_input
+                    text: ''
+                    hint_text: 'https://api.yourprovider.com/v1'
+                    disabled: True
+                    multiline: False
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    background_normal: ''
+                    background_color: 0.1, 0.1, 0.1, 1 # Lighter input background (#1a1a1a)
+                    foreground_color: 1, 1, 1, 1
+                    padding: [6, (self.height - self.line_height) / 2]
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_base_url_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+
+            # Card 3: Tweaks
+            GridLayout:
+                cols: 2
+                size_hint_y: None
+                height: self.minimum_height
+                padding: 10
+                spacing: 8
+                canvas.before:
+                    Color:
+                        rgba: 0.07, 0.07, 0.07, 1 # Card dark grey (#121212)
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                    Color:
+                        rgba: 0.15, 0.15, 0.15, 1 # Card border (#262626)
+                    Line:
+                        width: 1.0
+                        rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+                Label:
+                    text: 'SFX Filter Mode'
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    bold: True
+                    color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+                    size_hint: (0.35, None)
+                    height: '28dp'
+                    halign: 'left'
+                    valign: 'middle'
+                    text_size: self.size
+
+                Spinner:
+                    id: sfx_spinner
+                    text: 'seimbang'
+                    values: ['seimbang', 'longgar', 'ketat']
+                    background_normal: ''
+                    background_color: 0.13, 0.13, 0.13, 1 # Dark grey spinner (#222222)
+                    color: 1, 1, 1, 1
+                    font_name: 'Consolas'
+                    font_size: '10sp'
+                    size_hint: (0.65, None)
+                    height: '28dp'
+                    on_text: app.on_sfx_changed(self.text)
+                    canvas.after:
+                        Color:
+                            rgba: 0.22, 0.22, 0.22, 1
+                        Line:
+                            width: 1.0
+                            rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+
+    # --- Console Logs ---
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: 0.35
+        padding: [12, 0, 12, 8]
+        spacing: 4
+
+        Label:
+            text: 'LOG CONSOLE'
+            font_name: 'Consolas'
+            font_size: '10sp'
+            bold: True
+            color: 0.5, 0.5, 0.5, 1
+            size_hint_y: None
+            height: '16dp'
+            halign: 'left'
+            valign: 'middle'
+            text_size: self.size
+
+        TextInput:
+            id: log_output
+            text: 'Welcome to CYPY! GUI initialized successfully.\n'
+            readonly: True
+            font_name: 'Consolas'
+            font_size: '10sp'
+            background_normal: ''
+            background_color: 0.1, 0.1, 0.1, 1 # Match other inputs (#1a1a1a)
+            foreground_color: 0.06, 0.73, 0.51, 1 # Emerald Green text
+            padding: [8, 8]
+            multiline: True
+            canvas.after:
+                Color:
+                    rgba: 0.22, 0.22, 0.22, 1 # Match other borders (#383838)
+                Line:
+                    width: 1.0
+                    rectangle: (self.x + 0.5, self.y + 0.5, self.width - 2.0, self.height - 2.0)
+
+
+    # --- Action Button (Bottom) ---
+    BoxLayout:
+        size_hint_y: None
+        height: '44dp'
+        padding: [12, 0, 12, 8]
+
+        Button:
+            id: translate_btn
+            text: 'TRANSLATE NOW'
+            background_normal: ''
+            background_color: 0.86, 0.15, 0.47, 1 # Xidown Accent Pink (#db2777)
+            color: 1, 1, 1, 1
+            font_name: 'Consolas'
+            font_size: '11sp'
+            bold: True
+            on_release: app.start_translation()

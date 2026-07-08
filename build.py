@@ -150,6 +150,58 @@ def run_build():
             print(f"[Build] Error processing model: {e}")
             sys.exit(1)
 
+    # Prepare version info for Windows build metadata (Publisher: indravoyager)
+    version_file_path = ROOT_DIR / "version_info.txt"
+    version_file_created = False
+    if curr_system == "windows":
+        try:
+            ver_parts = []
+            for part in APP_VER.lstrip("vV").split('.'):
+                try:
+                    ver_parts.append(int(part))
+                except ValueError:
+                    ver_parts.append(0)
+            while len(ver_parts) < 4:
+                ver_parts.append(0)
+            version_tuple = tuple(ver_parts[:4])
+            
+            version_info_content = f"""# UTF-8
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers={version_tuple},
+    prodvers={version_tuple},
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+    ),
+  kids=[
+    StringFileInfo(
+      [
+      StringTable(
+        '040904B0',
+        [StringStruct('CompanyName', 'indravoyager'),
+        StringStruct('FileDescription', 'CYPY Manga Translator'),
+        StringStruct('FileVersion', '{APP_VER}'),
+        StringStruct('InternalName', 'cypy'),
+        StringStruct('LegalCopyright', 'Copyright (c) 2026 indravoyager'),
+        StringStruct('OriginalFilename', 'cypy.exe'),
+        StringStruct('ProductName', 'CYPY'),
+        StringStruct('ProductVersion', '{APP_VER}')])
+      ]), 
+    VarFileInfo([VarStruct('Translation', [1033, 1200])])
+  ]
+)
+"""
+            with open(version_file_path, "w", encoding="utf-8") as vf:
+                vf.write(version_info_content)
+            version_file_created = True
+            print("[Build] Generated Windows executable version metadata (Publisher: indravoyager).")
+        except Exception as ve:
+            print(f"[Build] Warning: Failed to generate version info: {ve}")
+
     # Build command using PyInstaller
     cmd: List[str] = [
         EXEC_PATH, "-m", "PyInstaller",
@@ -160,6 +212,7 @@ def run_build():
         f"--distpath={DIST_DIR}",
         f"--workpath={build_temp_dir}",
         f"--add-data={ASSETS_DIR}{data_sep}assets",
+        f"--add-data={ROOT_DIR}/cypy/gui/design.kv{data_sep}cypy/gui",
         "--exclude-module=pandas",
         "--exclude-module=tensorboard",
         "--exclude-module=tkinter",
@@ -172,6 +225,9 @@ def run_build():
     if is_favicon_exist:
         cmd.append(f"--icon={ICON_PATH}")
 
+    if version_file_created:
+        cmd.append(f"--version-file={version_file_path}")
+
     cmd.append(str(APP_ENTRY_POINT))
 
     print(f"[Build] Running PyInstaller compilation command:\n{' '.join(cmd)}")
@@ -182,6 +238,11 @@ def run_build():
         print(f"[Build] PyInstaller compilation failed with exit code: {e.returncode}")
         sys.exit(1)
     finally:
+        # Clean up version info file
+        if version_file_created and version_file_path.is_file():
+            try: version_file_path.unlink()
+            except Exception: pass
+
         # Clean up temporary build spec/work path files
         if build_temp_dir.exists():
             shutil.rmtree(build_temp_dir, ignore_errors=True)

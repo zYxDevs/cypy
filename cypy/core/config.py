@@ -276,11 +276,46 @@ def save_local_profile():
 
 
 # ==========================================
-# ✦ PERSISTENT SETTINGS (data/settings.json) ✦
+# ✦ PERSISTENT SETTINGS (data/settings.json with LocalAppData Fallback) ✦
 # ==========================================
-DATA_DIR = os.path.join(ROOT_DIR, "data")
+# Hybrid configuration storage logic:
+# 1. If running in a read-only folder (like Program Files) OR if LocalAppData config already exists,
+#    we save settings to %LOCALAPPDATA%/cypy/settings.json to preserve them during upgrades.
+# 2. Otherwise, we use local ROOT_DIR/data/settings.json (Portable mode).
+
+local_data_dir = os.path.join(ROOT_DIR, "data")
+local_settings_file = os.path.join(local_data_dir, "settings.json")
+
+# Define fallback LocalAppData path
+appdata_dir = os.path.join(os.environ.get("LOCALAPPDATA", os.path.expanduser("~")), "cypy")
+appdata_settings_file = os.path.join(appdata_dir, "settings.json")
+
+# Check if ROOT_DIR is in a system folder
+in_program_files = "program files" in ROOT_DIR.lower()
+
+if os.path.exists(appdata_settings_file) or in_program_files:
+    DATA_DIR = appdata_dir
+    SETTINGS_FILE = appdata_settings_file
+else:
+    # Verify write access to local ROOT_DIR/data
+    is_writable = True
+    try:
+        os.makedirs(local_data_dir, exist_ok=True)
+        test_file = os.path.join(local_data_dir, ".write_test")
+        with open(test_file, "w") as f:
+            f.write("test")
+        os.remove(test_file)
+    except Exception:
+        is_writable = False
+        
+    if is_writable:
+        DATA_DIR = local_data_dir
+        SETTINGS_FILE = local_settings_file
+    else:
+        DATA_DIR = appdata_dir
+        SETTINGS_FILE = appdata_settings_file
+
 os.makedirs(DATA_DIR, exist_ok=True)
-SETTINGS_FILE = os.path.join(DATA_DIR, "settings.json")
 
 def load_settings():
     """Loads target language, provider, and model configurations from data/settings.json."""
