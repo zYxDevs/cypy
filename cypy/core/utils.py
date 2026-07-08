@@ -1069,7 +1069,8 @@ def create_shortcut_if_first_run():
         return
 
     base_path = os.path.dirname(sys.executable)
-    cache_dir = os.path.join(base_path, "cypy_cache")
+    local_app_data = os.environ.get("LOCALAPPDATA", os.path.expanduser("~"))
+    cache_dir = os.path.join(local_app_data, "cypy", "cypy_cache")
     os.makedirs(cache_dir, exist_ok=True)
     
     flag_file = os.path.join(cache_dir, ".shortcut_created")
