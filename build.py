@@ -328,15 +328,18 @@ def package_release(project_root: Union[str, Path]):
     if is_onefile:
         shutil.copy2(pyinstaller_output, app_folder_path / pyinstaller_output.name)
         print(f"[Build] Copied compiled executable {pyinstaller_output.name} into release folder.")
-    else:
-        for item in os.listdir(pyinstaller_output):
-            s = pyinstaller_output / item
-            d = app_folder_path / item
-            if s.is_dir():
-                shutil.copytree(s, d, symlinks=True)
-            else:
-                shutil.copy2(s, d, follow_symlinks=False)
         print("[Build] Copied all compiled files and folders into release folder.")
+
+    # Create the secondary CLI entry point copy
+    try:
+        if os_name == "windows":
+            shutil.copy2(app_folder_path / "cypy.exe", app_folder_path / "cypy-cli.exe")
+            print("[Build] Created secondary CLI launcher: cypy-cli.exe")
+        else:
+            shutil.copy2(app_folder_path / "cypy", app_folder_path / "cypy-cli")
+            print("[Build] Created secondary CLI launcher: cypy-cli")
+    except Exception as copy_err:
+        print(f"[Build] Warning: Failed to create CLI launcher copy: {copy_err}", file=sys.stderr)
 
     # Remove heavy unused assets to optimize package size
     internal_dir = app_folder_path / "_internal"
