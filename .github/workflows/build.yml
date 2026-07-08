@@ -35,15 +35,60 @@ jobs:
       - name: Run Build Script
         run: python build.py
 
+      - name: Compile Inno Setup Installer (Windows Only)
+        if: matrix.os == 'windows-latest'
+        run: |
+          iscc setup.iss
+        shell: pwsh
+
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: build-artifact-${{ matrix.os }}
-          path: releases/*.zip
+          path: |
+            releases/*.zip
+            releases/*.exe
+
+  build-android:
+    name: Build APK on Ubuntu
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Get Date
+        id: get-date
+        run: |
+          echo "date=$(date -u +'%Y%m%d')" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Cache Buildozer global directory
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: ${{ runner.os }}-buildozer-${{ steps.get-date.outputs.date }}
+
+      - name: Buildozer Action
+        uses: ArtemGovorov/buildozer-action@v1
+        id: buildozer
+        with:
+          workdir: .
+          buildozer_version: master
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-artifact-android
+          path: bin/*.apk
 
   release:
     name: Create Release and Upload Assets
-    needs: build
+    needs: [build, build-android]
     runs-on: ubuntu-latest
     if: startsWith(github.ref, 'refs/tags/v')
     steps:
@@ -56,6 +101,8 @@ jobs:
         run: |
           mkdir -p release-files
           find downloaded-artifacts -name "*.zip" -exec cp {} release-files/ \;
+          find downloaded-artifacts -name "*.exe" -exec cp {} release-files/ \;
+          find downloaded-artifacts -name "*.apk" -exec cp {} release-files/ \;
           echo "Files to upload:"
           ls -lh release-files/
 
@@ -64,6 +111,6 @@ jobs:
         with:
           name: cypy ${{ github.ref_name }}
           generate_release_notes: true
-          files: release-files/*.zip
+          files: release-files/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
