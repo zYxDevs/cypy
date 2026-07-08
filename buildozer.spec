@@ -43,6 +43,9 @@ android.grant_scopes = True
 # (list) Android architectures to build for, choices: armeabi-v7a, arm64-v8a, x86, x86_64
 android.archs = arm64-v8a
 
+# (bool) Accept SDK license
+android.accept_sdk_license = True
+
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
