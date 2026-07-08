@@ -386,7 +386,8 @@ def tampilkan_status(provider, target_language):
 
 
 def main():
-    if "--gui" in sys.argv:
+    # Default to GUI mode if no command line arguments are provided
+    if "--gui" in sys.argv or len(sys.argv) <= 1:
         from cypy.gui import main as gui_main
         gui_main()
         return
