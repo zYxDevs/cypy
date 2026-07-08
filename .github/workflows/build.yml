@@ -74,7 +74,7 @@ jobs:
           key: ${{ runner.os }}-buildozer-${{ steps.get-date.outputs.date }}
 
       - name: Buildozer Action
-        uses: ArtemGovorov/buildozer-action@v1
+        uses: ArtemSBulgakov/buildozer-action@v1
         id: buildozer
         with:
           workdir: .
