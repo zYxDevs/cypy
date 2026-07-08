@@ -1,5 +1,10 @@
 import os
 import sys
+
+# Force ANGLE (DirectX) backend on Windows to prevent OpenGL 1.1 crashes during PyInstaller analysis on headless runners
+if sys.platform.startswith('win'):
+    os.environ['KIVY_GL_BACKEND'] = 'angle_sdl2'
+
 import shutil
 import platform
 import subprocess
