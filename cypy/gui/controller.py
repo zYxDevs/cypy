@@ -41,6 +41,19 @@ class CYPYApp(App):
         # Load config details from config.py and update GUI widgets
         self.load_settings_into_ui()
         
+        # Request Android permissions if running on Android
+        from kivy.utils import platform
+        if platform == 'android':
+            try:
+                from android.permissions import request_permissions, Permission
+                request_permissions([
+                    Permission.READ_EXTERNAL_STORAGE,
+                    Permission.WRITE_EXTERNAL_STORAGE,
+                    Permission.READ_MEDIA_IMAGES
+                ])
+            except Exception as e:
+                print(f"[Android] Error requesting permissions: {e}")
+        
         # Bind Drag & Drop berkas ke Jendela GUI
         from kivy.core.window import Window
         Window.bind(on_drop_file=self._on_file_drop)

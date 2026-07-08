@@ -29,7 +29,7 @@ icon.filename = %(source.dir)s/assets/favicon.png
 orientation = portrait
 
 # (list) Permissions
-android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE
+android.permissions = READ_EXTERNAL_STORAGE, WRITE_EXTERNAL_STORAGE, READ_MEDIA_IMAGES
 
 # (int) Target Android API, should be as high as possible.
 android.api = 33
