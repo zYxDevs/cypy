@@ -2,6 +2,7 @@ import os
 import cv2
 import time
 import json
+import re
 import fitz
 import zipfile
 import shutil
@@ -568,7 +569,7 @@ def process_folder(folder_path, yolo_model, provider, target_language="Indonesia
                     failed_files.append(filename)
             except Exception as e:
                 failed += 1
-                failed_files.append(futures[future])
+                failed_files.append(f"{futures[future]} ({e})")
 
     print(f"\n[Batch] Completed! Success: {success}, Failed: {failed}, Total: {total}")
     
@@ -616,7 +617,7 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
     failed_pages = []
     
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = [executor.submit(process_pdf_page, p_num, p_path) for p_num, p_path in page_paths]
+        futures = {executor.submit(process_pdf_page, p_num, p_path): p_num for p_num, p_path in page_paths}
         for future in concurrent.futures.as_completed(futures):
             try:
                 p_num, res_path, is_success = future.result()
@@ -628,6 +629,7 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
                     failed_pages.append(f"Page {p_num + 1}")
             except Exception as e:
                 failed += 1
+                failed_pages.append(f"Page {futures[future] + 1} ({e})")
 
     valid_paths = [p for p in translated_images_paths if p]
     if valid_paths:
@@ -721,7 +723,10 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
             if f.lower().endswith(config.SUPPORTED_IMAGE_EXTENSIONS):
                 image_paths.append(os.path.join(root, f))
                 
-    image_paths.sort()
+    def natural_page_key(path):
+        return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", os.path.basename(path))]
+
+    image_paths.sort(key=natural_page_key)
     total = len(image_paths)
     
     if total == 0:
@@ -740,28 +745,31 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
         expected_output = _make_output_path(img_path, target_language)
         if os.path.exists(expected_output):
             print(f"\n[{idx}/{total}] Skipping (Already translated).")
-            return expected_output, img_path, True
+            return idx, expected_output, img_path, True
             
         print(f"\n[{idx}/{total}] Translating {os.path.basename(img_path)}...")
         res = process_single_image(img_path, yolo_model, provider=provider, target_language=target_language)
-        return (res if res else img_path), img_path, bool(res)
+        return idx, (res if res else img_path), img_path, bool(res)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
-        futures = {executor.submit(process_arch_file, p, i): i for i, p in enumerate(image_paths, start=1)}
+        futures = {executor.submit(process_arch_file, p, i): (i, p) for i, p in enumerate(image_paths, start=1)}
         for future in concurrent.futures.as_completed(futures):
             try:
-                result, img_path, is_success = future.result()
-                translated_paths.append(result)
+                idx, result, img_path, is_success = future.result()
+                translated_paths.append((idx, result))
                 if is_success:
                     success += 1
                 else:
                     failed += 1
                     failed_files.append(os.path.basename(img_path))
             except Exception as e:
+                idx, img_path = futures[future]
+                translated_paths.append((idx, img_path))
                 failed += 1
+                failed_files.append(f"{os.path.basename(img_path)} ({e})")
             
     # Repack into PDF
-    valid_paths = [p for p in translated_paths if p and os.path.exists(p)]
+    valid_paths = [p for _, p in sorted(translated_paths) if p and os.path.exists(p)]
     if valid_paths:
         output_pdf_path = _make_output_path(archive_path, target_language, output_ext=".pdf")
         print(f"\nCombining translated images into PDF...")
