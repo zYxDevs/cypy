@@ -15,6 +15,7 @@ try:
 except ImportError:
     rarfile = None
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
+Image.init()
 from cypy.core.yolo_onnx import YOLOONNX as YOLO
 
 import cypy.core.config as config
@@ -22,7 +23,8 @@ from cypy.core.utils import (
     bersihkan_json_dari_gemini,
     buang_kotak_raksasa_palsu,
     gabung_kotak_tumpang_tindih, buang_kotak_ngawur, buang_kotak_sfx_dan_gambar,
-    buat_crop_lega_tapi_tidak_nyamber, mask_luar_box_utama, tulis_teks_di_balon
+    buat_crop_lega_tapi_tidak_nyamber, mask_luar_box_utama, tulis_teks_di_balon,
+    imwrite_safe
 )
 
 
@@ -196,6 +198,8 @@ def shrink_crop_list_if_mosaic_too_tall(
 
 def process_single_image(image_path, yolo_model, provider, target_language="Indonesian"):
     """Processes a single manga page. Splits landscape images into two pages automatically."""
+    if config.CANCEL_TRANSLATION:
+        return None
     img = cv2.imdecode(np.fromfile(image_path, dtype=np.uint8), cv2.IMREAD_COLOR)
     if img is None:
         print("[!] Image file is corrupt or unreadable.")
@@ -226,7 +230,7 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
                 
             img_part = img[:, x_start:x_end]
             part_path = image_path.rsplit(".", 1)[0] + f"_split{i+1}.png"
-            cv2.imwrite(part_path, img_part)
+            imwrite_safe(part_path, img_part)
             
             print(f"  Translating Part {i+1} (Right-to-Left)...")
             res_path = _process_single_image_core(part_path, yolo_model, provider, target_language)
@@ -252,7 +256,7 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
             
             output_path = _make_output_path(image_path, target_language)
             
-            cv2.imwrite(output_path, combined)
+            imwrite_safe(output_path, combined)
             
             # Clean up split results
             for res_path, part_path in splits:
@@ -268,6 +272,8 @@ def process_single_image(image_path, yolo_model, provider, target_language="Indo
 
 def _process_single_image_core(image_path, yolo_model, provider, target_language="Indonesian"):
     """Core processing function for a single manga page."""
+    if config.CANCEL_TRANSLATION:
+        return None
 
     print(f"\nTranslating: {os.path.basename(image_path)}")
 
@@ -544,6 +550,8 @@ def process_folder(folder_path, yolo_model, provider, target_language="Indonesia
     failed_files = []
     
     def process_file(filename, idx):
+        if config.CANCEL_TRANSLATION:
+            return False, filename
         file_path = os.path.join(folder_path, filename)
         
         # Resume Check
@@ -560,6 +568,11 @@ def process_folder(folder_path, yolo_model, provider, target_language="Indonesia
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_file, f, idx): f for idx, f in enumerate(files, start=1)}
         for future in concurrent.futures.as_completed(futures):
+            if config.CANCEL_TRANSLATION:
+                for fut in futures:
+                    fut.cancel()
+                print("\n[!] Folder translation cancelled.")
+                break
             try:
                 result, filename = future.result()
                 if result:
@@ -595,13 +608,27 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
     print("Extracting PDF pages...")
     page_paths = []
     for page_num in range(total_pages):
+        if config.CANCEL_TRANSLATION:
+            print("\n[PDF] Extraction cancelled.")
+            shutil.rmtree(temp_dir, ignore_errors=True)
+            return
         page = doc.load_page(page_num)
-        pix = page.get_pixmap(dpi=300)
+        page_rect = page.rect
+        max_pt = max(page_rect.width, page_rect.height)
+        if max_pt > 0:
+            target_pixel = 2000
+            dpi = (target_pixel / max_pt) * 72
+            dpi = int(max(72, min(300, dpi)))
+        else:
+            dpi = 300
+        pix = page.get_pixmap(dpi=dpi)
         img_path = os.path.join(temp_dir, f"page_{page_num:04d}.png")
         pix.save(img_path)
         page_paths.append((page_num, img_path))
         
     def process_pdf_page(page_num, img_path):
+        if config.CANCEL_TRANSLATION:
+            return page_num, None, False
         expected_output = _make_output_path(img_path, target_language)
         if os.path.exists(expected_output):
             print(f"\n[PDF {page_num + 1}/{total_pages}] Skipping (Already translated).")
@@ -619,6 +646,11 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_pdf_page, p_num, p_path): p_num for p_num, p_path in page_paths}
         for future in concurrent.futures.as_completed(futures):
+            if config.CANCEL_TRANSLATION:
+                for fut in futures:
+                    fut.cancel()
+                print("\n[!] PDF translation cancelled.")
+                break
             try:
                 p_num, res_path, is_success = future.result()
                 translated_images_paths[p_num] = res_path
@@ -632,7 +664,7 @@ def process_pdf(pdf_path, yolo_model, provider, target_language="Indonesian"):
                 failed_pages.append(f"Page {futures[future] + 1} ({e})")
 
     valid_paths = [p for p in translated_images_paths if p]
-    if valid_paths:
+    if valid_paths and not config.CANCEL_TRANSLATION:
         print("Saving final PDF...")
         images = [Image.open(img).convert("RGB") for img in valid_paths]
         output_pdf_path = _make_output_path(pdf_path, target_language, output_ext=".pdf")
@@ -742,6 +774,8 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
     failed = 0
 
     def process_arch_file(img_path, idx):
+        if config.CANCEL_TRANSLATION:
+            return idx, None, img_path, False
         expected_output = _make_output_path(img_path, target_language)
         if os.path.exists(expected_output):
             print(f"\n[{idx}/{total}] Skipping (Already translated).")
@@ -754,6 +788,11 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
     with concurrent.futures.ThreadPoolExecutor(max_workers=3) as executor:
         futures = {executor.submit(process_arch_file, p, i): (i, p) for i, p in enumerate(image_paths, start=1)}
         for future in concurrent.futures.as_completed(futures):
+            if config.CANCEL_TRANSLATION:
+                for fut in futures:
+                    fut.cancel()
+                print("\n[!] Archive translation cancelled.")
+                break
             try:
                 idx, result, img_path, is_success = future.result()
                 translated_paths.append((idx, result))
@@ -770,7 +809,7 @@ def process_archive(archive_path, yolo_model, provider, target_language="Indones
             
     # Repack into PDF
     valid_paths = [p for _, p in sorted(translated_paths) if p and os.path.exists(p)]
-    if valid_paths:
+    if valid_paths and not config.CANCEL_TRANSLATION:
         output_pdf_path = _make_output_path(archive_path, target_language, output_ext=".pdf")
         print(f"\nCombining translated images into PDF...")
         images = [Image.open(img).convert("RGB") for img in valid_paths]

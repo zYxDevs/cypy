@@ -398,3 +398,6 @@ def save_settings():
 
 # Initialize settings load
 load_settings()
+
+# Cancellation flag for GUI/CLI
+CANCEL_TRANSLATION = False

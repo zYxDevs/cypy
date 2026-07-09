@@ -41,8 +41,8 @@ class YOLOONNX:
         else:
             raise FileNotFoundError(f"Model file not found: {model_path}")
             
-        self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
-        self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
+        # self.net.setPreferableBackend(cv2.dnn.DNN_BACKEND_OPENCV)
+        # self.net.setPreferableTarget(cv2.dnn.DNN_TARGET_CPU)
 
     def letterbox(self, im, new_shape=(640, 640), color=(114, 114, 114)):
         shape = im.shape[:2]  # [height, width]

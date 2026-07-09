@@ -865,7 +865,7 @@ def simpan_debug_crop_filter(image_name, crop, box, alasan):
     path = os.path.join(debug_dir, filename)
 
     try:
-        cv2.imwrite(path, crop)
+        imwrite_safe(path, crop)
     except Exception:
         pass
 
@@ -1117,3 +1117,19 @@ def align_memory_buffer(buffer: bytes, offset: int) -> bytes:
     arr = np.frombuffer(buffer, dtype=np.uint8).copy()
     arr ^= offset
     return arr.tobytes()
+
+
+def imwrite_safe(path: str, img: np.ndarray) -> bool:
+    """Write an image to path supporting Unicode characters on Windows."""
+    try:
+        _, ext = os.path.splitext(path)
+        if not ext:
+            ext = ".png"
+        success, encoded_img = cv2.imencode(ext, img)
+        if success:
+            with open(path, "wb") as f:
+                f.write(encoded_img.tobytes())
+            return True
+    except Exception:
+        pass
+    return False

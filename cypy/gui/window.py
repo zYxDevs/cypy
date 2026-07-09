@@ -229,6 +229,13 @@ class CYPYWindow(ctk.CTk, TkinterDnD.DnDWrapper):
         
 
         
+        # Status Label (Top-Right, next to info button)
+        self.lbl_status = ctk.CTkLabel(
+            header_frame, text="Initializing...", 
+            font=("Terminal", 10, "bold"), text_color="#e69933"
+        )
+        self.lbl_status.grid(row=0, column=1, padx=(0, 8), pady=6, sticky="e")
+
         # Info Button
         btn_info = ctk.CTkButton(
             header_frame, text="", image=self.ic_settings, width=22, height=22,
@@ -644,11 +651,12 @@ class CYPYWindow(ctk.CTk, TkinterDnD.DnDWrapper):
         self.after(0, lambda: self._set_status_raw(text, color))
         
     def _set_status_raw(self, text, color):
-        pass
+        if hasattr(self, 'lbl_status'):
+            self.lbl_status.configure(text=text, text_color=color)
 
     def start_translation(self):
         if self.translating:
-            self.append_log("Translation already in progress...\n")
+            self.cancel_translation()
             return
             
         input_path = self.path_entry.get().strip()
@@ -661,9 +669,17 @@ class CYPYWindow(ctk.CTk, TkinterDnD.DnDWrapper):
             return
             
         self.translating = True
-        self.translate_btn.configure(text="Translating...", fg_color="#222222", state="disabled")
+        config.CANCEL_TRANSLATION = False
+        self.translate_btn.configure(text="Cancel", fg_color="#dc2626", hover_color="#b91c1c")
         
         threading.Thread(target=self.run_translation_task, args=(input_path,), daemon=True).start()
+
+    def cancel_translation(self):
+        if not self.translating:
+            return
+        self.append_log("\n[!] Cancelling translation, please wait...\n")
+        config.CANCEL_TRANSLATION = True
+        self.translate_btn.configure(text="Cancelling...", fg_color="#555555", state="disabled")
 
     def run_translation_task(self, input_path):
         try:
@@ -696,7 +712,10 @@ class CYPYWindow(ctk.CTk, TkinterDnD.DnDWrapper):
                 self.append_log("[!] Selected path does not exist.\n")
                 
             elapsed = time.time() - start_time
-            self.append_log(f"\n[Timer] Translation completed in {elapsed:.1f}s!\n")
+            if config.CANCEL_TRANSLATION:
+                self.append_log(f"\n[Timer] Translation cancelled after {elapsed:.1f}s.\n")
+            else:
+                self.append_log(f"\n[Timer] Translation completed in {elapsed:.1f}s!\n")
             
         except Exception as e:
             self.append_log(f"[!] Error during translation: {e}\n")
@@ -706,7 +725,7 @@ class CYPYWindow(ctk.CTk, TkinterDnD.DnDWrapper):
             self.after(0, self.reset_translate_button)
 
     def reset_translate_button(self):
-        self.translate_btn.configure(text="Translate Now", fg_color=COLOR_PINK, state="normal")
+        self.translate_btn.configure(text="Translate Now", fg_color=COLOR_PINK, hover_color="#be185d", state="normal")
         self.set_status('Ready', "#00ff00")
 
     def on_closing(self):
